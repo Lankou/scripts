@@ -1,0 +1,27 @@
+#!/bin/bash
+UPDIR=/var/wp-yoo/contents/uploads
+YEAR=$(date +%Y)
+
+for each in 01 02 03 04 05 06 07 08 09 10 11 12; do
+    OPTDIR=$UPDIR/$YEAR/$each
+    unset DIROK
+    if [ -d $OPTDIR ]; then
+        DIROK="1"
+        LIST=/var/log/optipng-$YEAR-$each.list
+        OPTLIST=/var/log/optipng-$YEAR-$each.optlist
+        ls -1 $OPTDIR/*.png 2> /dev/null | sed s/^.*\\/\// > $LIST
+        unset NOFILE
+	[ ${PIPESTATUS[0]} -ne 0 ] && export NOFILE="1"
+        if [[ $NOFILE -ne 1 ]]; then
+            [ ! -f $OPTLIST ] && touch $OPTLIST
+            for items in $(cat $LIST); do
+                grep $items $OPTLIST > /dev/null
+                [ $? -ne 0 ] && echo $items >> $OPTLIST && optipng -o7 $OPTDIR/$items
+            done
+        fi
+    else
+        [[ $NOFILE -eq 1 ]] && echo "No PNG files found, skipping..."
+        [[ $DIROK -ne 1 ]] && echo "Directory non-existent, skipping..."
+    fi
+done
+

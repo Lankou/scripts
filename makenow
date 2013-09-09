@@ -1,0 +1,102 @@
+#!/bin/bash
+[ -z $1 ] && echo "Usage: $(basename $0) devices" && exit
+
+#Try 'getopt' sometime?
+#case $1 in
+#	--help|-h)
+#		echo "The script will do following if these options are being presented:"
+#		echo "-C, --clobber: This will do an 'make clobber' instead of 'make clean' before building."
+#		echo "-n, --noclean: This will skip doing 'make clean' before building, if you have minor changes to the code and you want to build it fast, try this."
+#		echo "-u, --noupload: This will skip uploading the builds after they finished building."
+#		echo "-nu: This is the combination of -n and -u."
+#		echo "Please note only one argument is accepted!"
+#		exit 0
+#		;;
+#	--clobber|-C)
+#		echo "Doing 'make clobber' to clean up everything..."
+#		make clobber
+#		;;
+#	--noclean|-n)
+#		echo "Skip doing 'make clean', please ensure that the code isn't changed dramatically from your last build."
+#		;;
+#	--noupload|-u)
+#		echo "-noupload is specified, builds will not be uploaded to server."
+#		noupload=1
+#		make clean
+#		;;
+#	-nu)
+#		echo "Skipping 'make clean' and server uploads!!"
+#		noupload=1
+#		;;
+#	*)
+#		echo "No extra argument received, proceeding with 'make clean'."
+#		make clean
+#		;;
+#esac
+
+workdir=~/aokp
+D=$($workdir/vendor/aokp/tools/getdate)
+backupdir=~/builds
+remotedir=/var/www/aokp
+remote=username@hostname
+logdir=~/make-logs
+logfile=$D.log
+buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
+#export OUT_DIR_COMMON_BASE=/tmp
+if [ -z $OUT_DIR_COMMON_BASE ]; then
+  outdir=$workdir/out/target/product
+else
+  outdir=$OUT_DIR_COMMON_BASE/aokp/target/product
+  [ -d $OUT_DIR_COMMON_BASE/aokp ] && rm -rf $OUT_DIR_COMMON_BASE/aokp
+fi
+
+[ ! -d $workdir ] && echo "Working directory doesn't exist. Please check script." && exit 1
+
+for dir in $backupdir $logdir; do
+  [ ! -d $dir ] && mkdir -p $dir
+done
+
+echo "Making AOKP for $# devices: $@"
+echo "Building from directory: $workdir"
+echo "Builds will be saved to: $backupdir"
+echo "Builds will be uploaded to: $remote:$remotedir"
+echo "Build log will be found at: $logdir, filename is $buildlog"
+echo "Time consumption for the process will be logged at: $logdir/$logfile"
+[ ! -z $OUT_DIR_COMMON_BASE ] && echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE"
+sleep 5
+
+cd $workdir
+. $workdir/build/envsetup.sh
+
+if [ "$OUT_DIR_COMMON_BASE" != "/tmp" ]; then
+  make clean
+fi
+
+start=$(date +%s)
+
+for target in $@; do
+  if [ "$OUT_DIR_COMMON_BASE" = "/tmp" ]; then
+    make clean
+  fi
+	singlestart=$(date +%s)
+	brunch $target 2>&1 | tee -a $logdir/$buildlog
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then echo "Build error. Please check log."; exit 0; fi
+	singlestop=$(date +%s)
+	cp $outdir/$target/aokp_$target\_unofficial_$D.zip ~/builds/
+  echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
+	rsync -avzP $backupdir/aokp_$target\_unofficial_$D.zip $remote:$remotedir/ &
+	upload_pids="$upload_pids $!"
+done
+
+for process in $upload_pids
+do
+	wait $process > /dev/null 2>&1
+done
+
+ssh $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown www-data: $remotedir/*" > /dev/null 2>&1
+
+stop=$(date +%s)
+total=$((stop - start))
+
+echo -e "Total time: $(timeconv $total)\n" | tee -a $logdir/$logfile
+cat $logdir/$logfile

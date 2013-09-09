@@ -1,5 +1,5 @@
 #!/bin/bash
-D=$(~/aokp/vendor/aokp/tools/getdate)
+D=$(LC_ALL=C date +%Y-%m-%d)
 cd ~/builds/
 if [ "$1" = "yuga" ]
 then

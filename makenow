@@ -34,8 +34,19 @@
 #		;;
 #esac
 
+timeconv()
+{
+  x=$1
+  date -d "1970-01-01 UTC+8 +$x seconds" +"%Hh %Mm %Ss"
+}
+
+getdate()
+{
+  LC_ALL=C date +%Y-%m-%d
+}
+
 workdir=~/aokp
-D=$($workdir/vendor/aokp/tools/getdate)
+D=$(getdate)
 backupdir=~/builds
 remotedir=/var/www/aokp
 remote=username@hostname

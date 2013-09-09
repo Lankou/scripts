@@ -1,3 +1,0 @@
-#!/bin/bash
-x=$1
-date -d "1970-01-01 UTC+8 +$x seconds" +"%Hh %Mm %Ss"

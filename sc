@@ -6,7 +6,7 @@ ext=$(echo $1 | awk -F . '{print $NF}')
 
 for s in 1 2 3
 do
-  echo $ext | grep -E '\.'
+  echo $1 | grep -E '\.'
   if [ $? -eq 0 ]; then
   	git show :$s:$1 > ~/Desktop/$s.$ext
   else

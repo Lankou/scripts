@@ -1,6 +1,11 @@
 #!/bin/bash
 D=$(LC_ALL=C date +%Y-%m-%d)
-cd ~/builds/
+builddir=~/builds
+
+ps aux | grep adb | grep server &> /dev/null
+[ $? -ne 0 ] && sudo adb start-server
+
+cd $builddir/
 if [ "$1" = "yuga" ]
 then
 	adb push aokp_$1\_unofficial_$D.zip /ext_card/

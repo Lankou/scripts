@@ -1,39 +1,6 @@
 #!/bin/bash
 [ -z $1 ] && echo "Usage: $(basename $0) devices" && exit
 
-#Try 'getopt' sometime?
-#case $1 in
-#	--help|-h)
-#		echo "The script will do following if these options are being presented:"
-#		echo "-C, --clobber: This will do an 'make clobber' instead of 'make clean' before building."
-#		echo "-n, --noclean: This will skip doing 'make clean' before building, if you have minor changes to the code and you want to build it fast, try this."
-#		echo "-u, --noupload: This will skip uploading the builds after they finished building."
-#		echo "-nu: This is the combination of -n and -u."
-#		echo "Please note only one argument is accepted!"
-#		exit 0
-#		;;
-#	--clobber|-C)
-#		echo "Doing 'make clobber' to clean up everything..."
-#		make clobber
-#		;;
-#	--noclean|-n)
-#		echo "Skip doing 'make clean', please ensure that the code isn't changed dramatically from your last build."
-#		;;
-#	--noupload|-u)
-#		echo "-noupload is specified, builds will not be uploaded to server."
-#		noupload=1
-#		make clean
-#		;;
-#	-nu)
-#		echo "Skipping 'make clean' and server uploads!!"
-#		noupload=1
-#		;;
-#	*)
-#		echo "No extra argument received, proceeding with 'make clean'."
-#		make clean
-#		;;
-#esac
-
 timeconv()
 {
   x=$1
@@ -93,9 +60,10 @@ for target in $@; do
 	brunch $target 2>&1 | tee -a $logdir/$buildlog
   if [ ${PIPESTATUS[0]} -ne 0 ]; then echo "Build error. Please check log."; exit 0; fi
 	singlestop=$(date +%s)
-	cp $outdir/$target/aokp_$target\_unofficial_$D.zip ~/builds/
+  targetzip=aokp_$target\_jb-mr2_unofficial_$D.zip
+	cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-	rsync -avzP $backupdir/aokp_$target\_unofficial_$D.zip $remote:$remotedir/ &
+	rsync -avzP $backupdir/$targetzip $remote:$remotedir/ &
 	upload_pids="$upload_pids $!"
 done
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 D=$(LC_ALL=C date +%Y-%m-%d)
 builddir=~/builds
+pushfile=aokp_$1\_jb-mr2_unofficial_$D.zip
 
 ps aux | grep adb | grep server &> /dev/null
 [ $? -ne 0 ] && sudo adb start-server
@@ -8,7 +9,7 @@ ps aux | grep adb | grep server &> /dev/null
 cd $builddir/
 if [ "$1" = "yuga" ]
 then
-	adb push aokp_$1\_unofficial_$D.zip /ext_card/
+	adb push $pushfile /ext_card/
 else
-	adb push aokp_$1\_unofficial_$D.zip /sdcard/
+	adb push $pushfile /sdcard/
 fi

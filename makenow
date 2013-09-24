@@ -1,5 +1,5 @@
 #!/bin/bash
-[ -z $1 ] && echo "Usage: $(basename $0) devices" && exit
+[ -z $1 ] && echo "Usage: $(basename $0) devices" && exit 1
 
 timeconv()
 {

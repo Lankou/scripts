@@ -16,14 +16,25 @@ logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
 #export OUT_DIR_COMMON_BASE=/tmp
+
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product
 else
+  [ ! -d $OUT_DIR_COMMON_BASE ] && echo "Defined OUT_DIR_COMMON_BASE doesn't exist. Please check script." && exit 1
   outdir=$OUT_DIR_COMMON_BASE/aokp/target/product
   [ -d $OUT_DIR_COMMON_BASE/aokp ] && rm -rf $OUT_DIR_COMMON_BASE/aokp
 fi
 
-[ ! -d $workdir ] && echo "Working directory doesn't exist. Please check script." && exit 1
+for dirs in $workdir $backupdir $logdir; do
+  [ ! -d $dirs ] && echo "Defined directory $dirs doesn't exist. Please check script or create the directory."
+  exit 1
+done
+
+ssh $remote exit
+[ $? -ne 0 ] && echo "Connection to $remote failed. Please check host setting in script."
+
+ssh $remote "ls $remotedir &> /dev/null"
+[ $? -ne 0 ] && echo "Cannot access $remotedir on $remote. Please check settings in script."
 
 for dir in $backupdir $logdir; do
   [ ! -d $dir ] && mkdir -p $dir
@@ -41,30 +52,28 @@ sleep 5
 cd $workdir
 . $workdir/build/envsetup.sh
 
-if [ "$OUT_DIR_COMMON_BASE" != "/tmp" ]; then
-  make clean
-fi
+make clean
 
 start=$(date +%s)
 
 for target in $@; do
-  if [ "$OUT_DIR_COMMON_BASE" = "/tmp" ]; then
-    make clean
+  singlestart=$(date +%s)
+  brunch $target 2>&1 | tee -a $logdir/$buildlog
+  singlestop=$(date +%s)
+  if [ ${PIPESTATUS[0]} -ne 0 ]; then
+    echo "Build error. Please check log."
+    echo "Time wasted: $(timeconv $((singlestop - start)))"
+    exit 1
   fi
-	singlestart=$(date +%s)
-	brunch $target 2>&1 | tee -a $logdir/$buildlog
-  if [ ${PIPESTATUS[0]} -ne 0 ]; then echo "Build error. Please check log."; exit 0; fi
-	singlestop=$(date +%s)
   targetzip=aokp_$target\_jb-mr2_unofficial_$D.zip
-	cp $outdir/$target/$targetzip ~/builds/
+  cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-	rsync -avzP $backupdir/$targetzip $remote:$remotedir/ &
-	upload_pids="$upload_pids $!"
+  rsync -avzP $backupdir/$targetzip $remote:$remotedir/ &
+  upload_pids="$upload_pids $!"
 done
 
-for process in $upload_pids
-do
-	wait $process > /dev/null 2>&1
+for process in $upload_pids; do
+  wait $process > /dev/null 2>&1
 done
 
 ssh $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown www-data: $remotedir/*" > /dev/null 2>&1

@@ -29,9 +29,6 @@ for dirs in $workdir $backupdir $logdir; do
   [ ! -d $dirs ] && echo "Defined directory $dirs doesn't exist. Please check script or create the directory." && exit 1
 done
 
-ssh $remote exit
-[ $? -ne 0 ] && echo "Connection to $remote failed. Please check host setting in script." && exit 1
-
 ssh $remote "ls $remotedir &> /dev/null"
 [ $? -ne 0 ] && echo "Cannot access $remotedir on $remote. Please check settings in script." && exit 1
 

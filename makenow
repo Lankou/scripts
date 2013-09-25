@@ -15,6 +15,7 @@ remote=username@hostname
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
+USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then

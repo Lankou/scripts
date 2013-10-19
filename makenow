@@ -11,7 +11,7 @@ workdir=~/aokp
 D=$(LC_ALL=C date +%Y-%m-%d)
 backupdir=~/builds
 remotedir=/var/www/aokp
-remote=username@hostname
+remote=
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
@@ -28,6 +28,10 @@ fi
 
 for dirs in $workdir $backupdir $logdir; do
   [ ! -d $dirs ] && echo "Defined directory $dirs doesn't exist. Please check script or create the directory." && exit 1
+done
+
+for vars in remotedir remote logfile buildlog; do
+  [ -z $($vars) ] && echo "Variable $vars is not defined. Script aborted." && exit 1
 done
 
 ssh $remote "ls $remotedir &> /dev/null"

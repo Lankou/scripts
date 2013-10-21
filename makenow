@@ -32,7 +32,7 @@ for dirs in $workdir $backupdir $logdir; do
 done
 
 for vars in remotedir remote logfile buildlog; do
-  [ -z $($vars) ] && echo "Variable $vars is not defined. Script aborted." && exit 1
+  [ -z \$vars ] && echo "Variable $vars is not defined. Script aborted." && exit 1
 done
 
 ssh $remote "ls $remotedir &> /dev/null"
@@ -42,6 +42,13 @@ for dir in $backupdir $logdir; do
   [ ! -d $dir ] && mkdir -p $dir
 done
 
+for targets in $@; do
+  ls -1 $workdir/vendor/aokp/products | cut -d. -f1 | grep $targets &> /dev/null
+  if [ $? -ne 0 ]; then
+    echo "Device '$targets' doesn't exist."
+    exit 1
+  fi
+done
 echo "Making AOKP for $# devices: $@"
 echo "Building from directory: $workdir"
 echo "Builds will be saved to: $backupdir"

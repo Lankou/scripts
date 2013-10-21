@@ -1,4 +1,6 @@
 #!/bin/bash
+[ -z $1 ] && echo "Usage: $(basename $0) devices" && exit 1
+
 D=$(LC_ALL=C date +%Y-%m-%d)
 builddir=~/builds
 pushfile=$(ls -1 $builddir | grep $1 | grep $(date '+%Y')-$(date '+%m')-$(date '+%d'))

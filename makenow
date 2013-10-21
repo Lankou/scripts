@@ -43,12 +43,13 @@ for dir in $backupdir $logdir; do
 done
 
 for targets in $@; do
-  ls -1 $workdir/vendor/aokp/products | cut -d. -f1 | grep $targets &> /dev/null
+  cat $workdir/vendor/aokp/products/AndroidProducts.mk | grep -E ^\  | cut -d/ -f2 | cut -d. -f1 | grep $targets &> /dev/null
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
     exit 1
   fi
 done
+
 echo "Making AOKP for $# devices: $@"
 echo "Building from directory: $workdir"
 echo "Builds will be saved to: $backupdir"

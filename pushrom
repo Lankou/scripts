@@ -1,7 +1,17 @@
 #!/bin/bash
 D=$(LC_ALL=C date +%Y-%m-%d)
 builddir=~/builds
-pushfile=aokp_$1\_jb-mr2_unofficial_$D.zip
+pushfile=$(ls -1 $builddir | grep $1 | grep $(date '+%Y')-$(date '+%m')-$(date '+%d'))
+if [ $(echo $pushfile | wc -w) -gt 1 ]; then
+  echo "More than one file is found:"
+  echo "echo $pushfile | sed -e 's/\s\+/\n/g'"
+  echo ""
+  echo "Please push manually."
+  exit 1
+elif [ $(echo $pushfile | wc -w) -eq 0 ]; then
+  echo "No file found. Please check device name."
+  exit 1
+fi
 
 ps aux | grep adb | grep server &> /dev/null
 [ $? -ne 0 ] && sudo adb start-server

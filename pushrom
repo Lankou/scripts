@@ -6,7 +6,7 @@ builddir=~/builds
 pushfile=$(ls -1 $builddir | grep $1 | grep $(date '+%Y')-$(date '+%m')-$(date '+%d'))
 if [ $(echo $pushfile | wc -w) -gt 1 ]; then
   echo "More than one file is found:"
-  echo "echo $pushfile | sed -e 's/\s\+/\n/g'"
+  echo "$pushfile" | sed -e 's/\s\+/\n/g'
   echo ""
   echo "Please push manually."
   exit 1

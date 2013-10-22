@@ -1,9 +1,13 @@
 #!/bin/bash
 [ -z $1 ] && echo "Usage: $(basename $0) devices" && exit 1
 
-D=$(LC_ALL=C date +%Y-%m-%d)
+# Where the builds are
 builddir=~/builds
+
+# Get file name being pushed
 pushfile=$(ls -1 $builddir | grep $1 | grep $(date '+%Y')-$(date '+%m')-$(date '+%d'))
+
+# Check if there only one file name fetched
 if [ $(echo $pushfile | wc -w) -gt 1 ]; then
   echo "More than one file is found:"
   echo "$pushfile" | sed -e 's/\s\+/\n/g'
@@ -15,10 +19,14 @@ elif [ $(echo $pushfile | wc -w) -eq 0 ]; then
   exit 1
 fi
 
+# Check if adb is running
+# This part will need some improvement
 ps aux | grep adb | grep server &> /dev/null
 [ $? -ne 0 ] && sudo adb start-server
 
 cd $builddir/
+
+# Pushing files
 if [ "$1" = "yuga" ]
 then
 	adb push $pushfile /ext_card/

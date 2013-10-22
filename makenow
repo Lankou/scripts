@@ -50,13 +50,13 @@ for targets in $@; do
   fi
 done
 
-echo "Making AOKP for $# devices: $@"
-echo "Building from directory: $workdir"
-echo "Builds will be saved to: $backupdir"
-echo "Builds will be uploaded to: $remote:$remotedir"
-echo "Build log will be found at: $logdir, filename is $buildlog"
-echo "Time consumption for the process will be logged at: $logdir/$logfile"
-[ ! -z $OUT_DIR_COMMON_BASE ] && echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE"
+echo "Making AOKP for $# devices: $@" | tee -a $logdir/$buildlog
+echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
+echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
+echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog
+echo "Build log will be found at: $logdir, filename is $buildlog" | tee -a $logdir/$buildlog
+echo "Time consumption for the process will be logged at: $logdir/$logfile" | tee -a $logdir/$buildlog
+[ ! -z $OUT_DIR_COMMON_BASE ] && echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | tee -a $logdir/$buildlog
 sleep 5
 
 cd $workdir
@@ -70,8 +70,8 @@ for target in $@; do
   singlestart=$(date +%s)
   brunch $target 2>&1 | tee -a $logdir/$buildlog
   if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    echo "Build error. Please check log."
-    echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))"
+    echo "Build error. Please check log." | tee -a $logdir/$buildlog
+    echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | tee -a $logdir/$buildlog
     exit 1
   fi
   singlestop=$(date +%s)

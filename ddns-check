@@ -2,6 +2,7 @@
 LOGTIME=$(date +"%Y-%m-%d %H:%M:%S")
 LOGFILE=/var/log/ddns-check.log
 DDNSBIN=/usr/bin/ddns-up
+PIDFILE=/var/run/ddns.pid
 YMD=$(date +%Y%m%d-%H)
 
 # Log rotation.
@@ -9,7 +10,7 @@ YMD=$(date +%Y%m%d-%H)
 tar -czf $LOGFILE-$YMD.tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
 echo "$LOGTIME: Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE 
 
-ps up $(cat /tmp/ddns.pid) > /dev/null
+ps up $(cat $PIDFILE) > /dev/null
 ecode=$?
 if [ $ecode -eq 0 ]; then
     echo "DDNS daemon checked: $LOGTIME, Status: Running" >> $LOGFILE

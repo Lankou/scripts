@@ -27,6 +27,11 @@ else
   echo $$ > $PIDFILE
 fi
 
+# Log rotation.
+[ $(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc) -ne 0 ] &&
+  tar -czf $LOGFILE-$(date +%Y%m%d).tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
+  echo "$(logtime): Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE
+
 while true; do
   MYIP=$(curl --silent -X POST http://cynovan.com/ip.php | tr -d "\n")
   DOMIP=$(curl --silent -X POST https://dnsapi.cn/Record.Info -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID" | python -mjson.tool | grep value | cut -d: -f2 | tr -d "\"" | tr -d " ")

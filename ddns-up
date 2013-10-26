@@ -30,10 +30,10 @@ while true; do
   MYIP=$(curl --silent -X POST http://cynovan.com/ip.php | tr -d "\n")
   DOMIP=$(curl --silent -X POST https://dnsapi.cn/Record.Info -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID" | python -mjson.tool | grep value | cut -d: -f2 | tr -d "\"" | tr -d " ")
   if [ $MYIP = $DOMIP ]; then
-    echo "IP not changed: $MYIP. Sleeping for 30 seconds." | tee -a $LOGFILE
+    echo "$LOGTIME: IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
     sleep $INTERVAL
   else
-    echo "IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
+    echo "$LOGTIME: IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
     curl --silent -X POST https://dnsapi.cn/Record.Ddns -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID&record_line=$RECLINE&sub_domain=$SUBDOM"
     sleep $INTERVAL
   fi

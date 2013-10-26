@@ -11,15 +11,17 @@ SUBDOM=
 RECLINE="默认"
 INTERVAL="120"
 
+logtime() { date +"%Y-%m-%d %H:%M:%S" }
+
 if [ -f /var/run/ddns.pid ]; then
-  echo "$(date "+%Y-%m-%d %H:%M:%S") - PID file exists. Checking for running process." | tee -a $LOGFILE
+  echo "$(logtime) - PID file exists. Checking for running process." | tee -a $LOGFILE
   ps up $(cat $PIDFILE) &> /dev/null
   if [ $? -ne 0 ]; then
-    echo "$(date "+%Y-%m-%d %H:%M:%S") - PID is stale. Remove and restarting." | tee -a $LOGFILE
+    echo "$(logtime) - PID is stale. Remove and restarting." | tee -a $LOGFILE
     rm $PIDFILE
     echo $$ > $PIDFILE
   else
-    echo "$(date "+%Y-%m-%d %H:%M:%S") - Process is still up and running. Script aborted." | tee -a $LOGFILE
+    echo "$(logtime) - Process is still up and running. Script aborted." | tee -a $LOGFILE
   fi
 else
   echo $$ > $PIDFILE
@@ -29,10 +31,10 @@ while true; do
   MYIP=$(curl --silent -X POST http://cynovan.com/ip.php | tr -d "\n")
   DOMIP=$(curl --silent -X POST https://dnsapi.cn/Record.Info -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID" | python -mjson.tool | grep value | cut -d: -f2 | tr -d "\"" | tr -d " ")
   if [ $MYIP = $DOMIP ]; then
-    echo "$(date "+%Y-%m-%d %H:%M:%S"): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
+    echo "$(logtime): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
     sleep $INTERVAL
   else
-    echo "$(date "+%Y-%m-%d %H:%M:%S"): IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
+    echo "$(logtime): IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
     curl --silent -X POST https://dnsapi.cn/Record.Ddns -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID&record_line=$RECLINE&sub_domain=$SUBDOM"
     sleep $INTERVAL
   fi

@@ -31,7 +31,8 @@ DIR=$(getent passwd $PGUSER | cut -d ':' -f 6)/db-backup
 # LOGTIME variable is defined for administrators to better understand when did an event
 # happen within the log. Normally you don't need to change it.
 LOGFILE=$DIR/db-backup.log
-LOGTIME="\e[1;33;40m"$(date +'%Y/%m/%d %H:%M:%S')
+
+logtime() { date +"%Y/%m/%d %H:%M:%S" }
 
 # Add a variable to store current backup month.
 # Saves some scripting pain..
@@ -42,7 +43,7 @@ echo -e "\n" >> $LOGFILE
 
 # First off, check to see if the target directory exists.
 [ ! -d $CURRENTDIR ] && mkdir -p $CURRENTDIR &&
-echo -e "$LOGTIME: \e[1;33;40m$CURRENTDIR doesn't exist. It will be created.\e[0m" 2>&1 | tee -a $LOGFILE
+echo -e "\e[1;33;40m$(logtime): \e[1;33;40m$CURRENTDIR doesn't exist. It will be created.\e[0m" 2>&1 | tee -a $LOGFILE
 
 # Get current free space of HDD.
 # Normally you don't need to change it. If the space check function doesn't work,
@@ -53,12 +54,12 @@ FREESPACE=$(df -H $DIR | awk '{ print $4 }' | tail -n1 | cut -d 'G' -f 1)
 # Check for HDD free space. If it's less than 10 GigaBytes, delete
 # backups that are older than 3 months.
 if [ $(echo "$FREESPACE <= 10" | bc) -ne 0 ]; then
-    echo -e "$LOGTIME: \e[1;33;40mFree disk space is under 10 gigabytes. Clean up process started.\e[0m" 2>&1 | tee -a $LOGFILE
-    echo -e "$LOGTIME: \e[1;31;40mDirectory deletion records:\e[0m\n" 2>&1 | tee -a $LOGFILE
+    echo -e "\e[1;33;40m$(logtime): \e[1;33;40mFree disk space is under 10 gigabytes. Clean up process started.\e[0m" 2>&1 | tee -a $LOGFILE
+    echo -e "\e[1;33;40m$(logtime): \e[1;31;40mDirectory deletion records:\e[0m\n" 2>&1 | tee -a $LOGFILE
 # First check for backups that are in the same year.
     for MONDIR in $(ls -1 $DIR/$YEAR/); do
         [ $MONDIR -le $(($MONTH-3)) ] && rm -rf $DIR/$YEAR/$MONDIR &&
-        echo -e "$LOGTIME: \e[1;31;40mDeletion:\e[0m $DIR/$YEAR/$MONDIR" 2>&1 | tee -a $LOGFILE
+        echo -e "\e[1;33;40m$(logtime): \e[1;31;40mDeletion:\e[0m $DIR/$YEAR/$MONDIR" 2>&1 | tee -a $LOGFILE
     done
 
 # Then check if last year's backup folder exists.
@@ -67,23 +68,23 @@ if [ $(echo "$FREESPACE <= 10" | bc) -ne 0 ]; then
 # If exists, then delete backups that are older than 3 months.
         for MONDIR in $(ls -1 $DIR/$(($YEAR-1))); do
             [ $(($MONTH+12-$MONDIR)) -gt 3 ] && rm -rf $DIR/$(($YEAR-1))/$MONDIR &&
-            echo -e "$LOGTIME: \e[1;31;40mDeletion:\e[0m $DIR/$(($YEAR-1))/$MONDIR" 2>&1 | tee -a $LOGFILE
+            echo -e "\e[1;33;40m$(logtime): \e[1;31;40mDeletion:\e[0m $DIR/$(($YEAR-1))/$MONDIR" 2>&1 | tee -a $LOGFILE
         done
 
 # And if last year\'s directory is empty, delete it.
         [ $(ls -1 $DIR/$(($YEAR-1)) | wc -l) -eq 0 ] && rm -rf $DIR/$(($YEAR-1)) &&
-        echo -e "$LOGTIME: \e[1;33;40mFolder \e[1;36;40m$(($YEAR-1))\e[1;33;40m is empty. Deleting...\e[0m" 2>&1 | tee -a $LOGFILE
+        echo -e "\e[1;33;40m$(logtime): \e[1;33;40mFolder \e[1;36;40m$(($YEAR-1))\e[1;33;40m is empty. Deleting...\e[0m" 2>&1 | tee -a $LOGFILE
     fi
 fi
 
 # Get a list of available databases belongs to defined user.
 OWNDB=$(psql -U $PGUSER -c "SELECT datname FROM pg_database JOIN pg_authid ON pg_database.datdba = pg_authid.oid WHERE rolname = '$PGUSER'" | tail -n +3 | head -n -2)
-echo -e "$LOGTIME: \e[1;32;40mDatabases owned by \e[1;36;40m$PGUSER\e[1;32;40m:\n\e[1;35;40m$OWNDB\e[1;32;40m\nThey're going to be backed up.\n\e[0m" 2>&1 | tee -a $LOGFILE
+echo -e "\e[1;33;40m$(logtime): \e[1;32;40mDatabases owned by \e[1;36;40m$PGUSER\e[1;32;40m:\n\e[1;35;40m$OWNDB\e[1;32;40m\nThey're going to be backed up.\n\e[0m" 2>&1 | tee -a $LOGFILE
 
 # Log rotation. If log file is bigger than 512M, compress it and delete original log.
 [ $(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc) -ne 0 ] &&
 tar -Pczf $LOGFILE-$YMD.tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
-echo -e "$LOGTIME: \e[1;33;40mLast log file was too big (>4M), compressed for archive and creating a new one.\e[0m" 2>&1 | tee -a $LOGFILE
+echo -e "\e[1;33;40m$(logtime): \e[1;33;40mLast log file was too big (>4M), compressed for archive and creating a new one.\e[0m" 2>&1 | tee -a $LOGFILE
 
 # Start backup!
 for DB in $OWNDB; do
@@ -93,22 +94,22 @@ for DB in $OWNDB; do
         # First dump the databases as plaintext.
         pg_dump -U $PGUSER $DB -f $CURRENTDIR/$DB-$YMD.psql 2>&1 | tee -a $LOGFILE
         if [ $? -eq 0 ]; then
-            echo -e "$LOGTIME: \e[1;32;40mSuccessfully dumped database \e[1;35;40m$DB\e[1;32;40m to file. Proceed to compression.\e[0m" 2>&1 | tee -a $LOGFILE
+            echo -e "\e[1;33;40m$(logtime): \e[1;32;40mSuccessfully dumped database \e[1;35;40m$DB\e[1;32;40m to file. Proceed to compression.\e[0m" 2>&1 | tee -a $LOGFILE
         else
-            echo -e "$LOGTIME: \e[1;31;40mError occured while dumping database \e[1;35;40m$DB\e[1;31;40m. Exit code: \e[1;35;40m$?\e[1;31;40m.\nWARNING: Compression may fail!\e[0m" 2>&1 | tee -a $LOGFILE
+            echo -e "\e[1;33;40m$(logtime): \e[1;31;40mError occured while dumping database \e[1;35;40m$DB\e[1;31;40m. Exit code: \e[1;35;40m$?\e[1;31;40m.\nWARNING: Compression may fail!\e[0m" 2>&1 | tee -a $LOGFILE
         fi
 
         # Then compress the databases into tarballs to save space.
         tar -Pczf $CURRENTDIR/$DB-$YMD.tar.gz $CURRENTDIR/$DB-$YMD.psql && rm $CURRENTDIR/$DB-$YMD.psql 2>&1 | tee -a $LOGFILE
         if [ $? -eq 0 ]; then
-            echo -e "$LOGTIME: \e[1;32;40mCompression complete. Backup of \e[1;35;40m$DB\e[1;32;40m-\e[1;34;40m$YMD\e[1;32;40m success.\n\e[0m" 2>&1 | tee -a $LOGFILE
+            echo -e "\e[1;33;40m$(logtime): \e[1;32;40mCompression complete. Backup of \e[1;35;40m$DB\e[1;32;40m-\e[1;34;40m$YMD\e[1;32;40m success.\n\e[0m" 2>&1 | tee -a $LOGFILE
         else
-            echo -e "$LOGTIME: \e[1;31;40mUnexpected error occured during compressing database file for \e[1;35;40m$DB\e[1;31;40m. Exit code: \e[1;35;40m$?\e[0m" 2>&1 | tee -a $LOGFILE
+            echo -e "\e[1;33;40m$(logtime): \e[1;31;40mUnexpected error occured during compressing database file for \e[1;35;40m$DB\e[1;31;40m. Exit code: \e[1;35;40m$?\e[0m" 2>&1 | tee -a $LOGFILE
         fi
     else
         # If backup already exists, do not overwrite backups if exist.
         # This check is here just in case for manual backups.
-        echo -e "$LOGTIME: \e[1;31;40mWARNING: Backup of \e[1;35;40m$DB\e[1;31;40m aborted. A backup under name \e[1;35;40m$DB\e[1;31;40m-\e[1;34;40m$YMD\e[1;31;40m already exists. \n\
+        echo -e "\e[1;33;40m$(logtime): \e[1;31;40mWARNING: Backup of \e[1;35;40m$DB\e[1;31;40m aborted. A backup under name \e[1;35;40m$DB\e[1;31;40m-\e[1;34;40m$YMD\e[1;31;40m already exists. \n\
 Please delete the old backup first, and then execute this script again to backup. \n\
 If you don't need to back it up, please just ignore this message.\n\e[0m" 2>&1 | tee -a $LOGFILE
     fi

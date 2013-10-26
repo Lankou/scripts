@@ -1,23 +1,88 @@
 #!/bin/bash
 
+# Global variables
 PIDFILE=/var/run/ddns.pid
 LOGFILE=/var/log/ddns-up.log
+APIURL="https://dnsapi.cn"
+
+# Where to get your external IP?
+GETIPURL=
+
+# Your DNSPod login name (email)
 LOGIN=
+
+# Your DNSPod login password
 PASS=
+
+# Default format is json. This script only supports json,
+# as you can see I use Python to parse the result.
 FORMAT="json"
+
+# Your domain ID
+# You can get it by doing:
+# $ curl -X POST https://dnsapi.cn/Domain.List -d "login_email=YOUREMAIL&login_password=YOURPASSWORD&format=json" | python -mjson.tool
 DOMID=
+
+# Your DDNS record ID
+# You can get it by doing:
+# $ curl -X POST https://dnsapi.cn/Record.List -d "login_email=YOUREMAIL&login_password=YOURPASSWORD&format=json&domain_id=YOURDOMAINID" | python -mjson.tool
 RECID=
+
+# Your DDNS subdomain name
+# For example, your domain is abcd.com. And your DDNS record is ddns.abcd.com
+# In this case, your subdomain name is: ddns
 SUBDOM=
+
+# This is default.
 RECLINE="默认"
+
+# DDNS record query string
+QUERY="login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID"
+
+# DDNS record update string
+UPDATE=$QUERY"&record_line=$RECLINE&sub_domain=$SUBDOM"
+
+# Script sleep interval. Checks after $INTERVAL seconds
 INTERVAL="120"
 
+# Define some functions to make the script more readable
+# Log time format
 logtime() { date +"%Y-%m-%d %H:%M:%S" }
+
+# The mosted used action
+action() { curl --silent -X POST $1 }
+
+# Get current external IP
+getip() { action $GETIPURL }
+
+# How should the getip() result be processed
+# You should change this post-processor if necessary,
+# to better accomodate the script.
+# The final result should be only the IP, without any whitespaces or new lines.
+gerip_post() { tr -d "\n" }
+
+# Get the record on DNSPod
+getrecord() { action $APIURL/Record.Info -d $QUERY | python -mjson.tool }
+
+# How should the getrecord() result be processed
+# This should need any changes, unless DNSPod changes their output.
+getrecord_post() { grep value | cut -d: -f2 | tr -d "\"" | tr -d " " }
+updateip() { action $APIURL/Record.Ddns -d $UPDATE }
+
+# Check for previously running instances.
+# If one exists, see if it's alive.
+# If yes, abort. If no, delete stale PID file (if exists) and start the process.
+# TODO:
+# * To support IPv6 (currently it should favor IPv6 as most systems' default, unless you have
+#   tweaked your system to use IPv4 first or IPv6 times out.)
+# * Handle situations where another process running under the old PID. Although this is a
+#   rare case, but it should be under consideration.
 
 if [ -f /var/run/ddns.pid ]; then
   echo "$(logtime) - PID file exists. Checking for running process." | tee -a $LOGFILE
   ps up $(cat $PIDFILE) &> /dev/null
   if [ $? -ne 0 ]; then
-    echo "$(logtime) - PID is stale. Remove and restarting." | tee -a $LOGFILE
+    echo "$(logtime) - PID is stale. Remove and starting." | tee -a $LOGFILE
     rm $PIDFILE
     echo $$ > $PIDFILE
   else
@@ -28,19 +93,26 @@ else
 fi
 
 # Log rotation.
+# This part should be replaced by the system logrotate tool.
+
 [ $(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc) -ne 0 ] &&
   tar -czf $LOGFILE-$(date +%Y%m%d).tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
   echo "$(logtime): Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE
 
+# Non-stop loop for checking the DDNS status.
+# It will get the record from DNSPod every $INTERVAL seconds.
+# If the record on server is the same as getip()'s result, then sleep for $INTERVAL seconds.
+# If not, update the record then sleep.
+
 while true; do
-  MYIP=$(curl --silent -X POST http://cynovan.com/ip.php | tr -d "\n")
-  DOMIP=$(curl --silent -X POST https://dnsapi.cn/Record.Info -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID" | python -mjson.tool | grep value | cut -d: -f2 | tr -d "\"" | tr -d " ")
+  MYIP=$(getip | getip_post)
+  DOMIP=$(getrecord | getrecord_post)
   if [ $MYIP = $DOMIP ]; then
     echo "$(logtime): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
     sleep $INTERVAL
   else
     echo "$(logtime): IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
-    curl --silent -X POST https://dnsapi.cn/Record.Ddns -d "login_email=$LOGIN&login_password=$PASS&format=$FORMAT&domain_id=$DOMID&record_id=$RECID&record_line=$RECLINE&sub_domain=$SUBDOM"
+    updateip
     sleep $INTERVAL
   fi
 done

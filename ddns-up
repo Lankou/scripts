@@ -2,7 +2,6 @@
 
 PIDFILE=/var/run/ddns.pid
 LOGFILE=/var/log/ddns-up.log
-LOGTIME=$(date "+%Y-%m-%d %H:%M:%S")
 LOGIN=
 PASS=
 FORMAT="json"
@@ -13,14 +12,14 @@ RECLINE="默认"
 INTERVAL="120"
 
 if [ -f /var/run/ddns.pid ]; then
-  echo "$LOGTIME:  PID file exists. Checking for running process." | tee -a $LOGFILE
+  echo "$(date "+%Y-%m-%d %H:%M:%S") - PID file exists. Checking for running process." | tee -a $LOGFILE
   ps up $(cat $PIDFILE) &> /dev/null
   if [ $? -ne 0 ]; then
-    echo "$LOGTIME: PID is stale. Remove and restarting." | tee -a $LOGFILE
+    echo "$(date "+%Y-%m-%d %H:%M:%S") - PID is stale. Remove and restarting." | tee -a $LOGFILE
     rm $PIDFILE
     echo $$ > $PIDFILE
   else
-    echo "$LOGTIME: Process is still up and running. Script aborted." | tee -a $LOGFILE
+    echo "$(date "+%Y-%m-%d %H:%M:%S") - Process is still up and running. Script aborted." | tee -a $LOGFILE
   fi
 else
   echo $$ > $PIDFILE

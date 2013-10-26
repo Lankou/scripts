@@ -79,7 +79,7 @@ for target in $@; do
   cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
   rsync -avzhhP --stats --logfile=$logdir/rsync-$target\.log $backupdir/$targetzip $remote:$remotedir/ &
-  upload_pids="$upload_pids $(grep rsync | grep $target | awk '{print $2}')"
+  upload_pids="$upload_pids $!"
 done
 
 for process in $upload_pids; do

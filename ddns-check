@@ -11,13 +11,11 @@ logtime() { date +"%Y-%m-%d %H:%M:%S" }
 tar -czf $LOGFILE-$YMD.tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
 echo "$(logtime): Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE 
 
-ps up $(cat $PIDFILE) > /dev/null
-ecode=$?
-if [ $ecode -eq 0 ]; then
+ps up $(cat $PIDFILE) &> /dev/null
+if [ $? -eq 0 ]; then
     echo "DDNS daemon checked: $(logtime), Status: Running" >> $LOGFILE
     exit 0
 else
-    [ -f /tmp/ddns.pid ] && rm /tmp/ddns.pid
     echo "DDNS daemon checked: $(logtime), Status: Not running" >> $LOGFILE
     $DDNSBIN
 fi

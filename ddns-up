@@ -11,7 +11,7 @@ SUBDOM=
 INTERVAL="120"
 
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
-action() { curl --silent -X POST "$@"; }
+action() { curl -4 --silent -X POST "$@"; }
 jsonpretty() { python -mjson.tool; }
 getip() { action $GETIPURL; }
 getip_post() { tr -d "\n"; }

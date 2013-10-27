@@ -78,7 +78,7 @@ for target in $@; do
   targetzip=aokp_$target\_jb-mr2_unofficial_$D.zip
   cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-  rsync -avzhhP --stats --logfile=$logdir/rsync-$target\.log $backupdir/$targetzip $remote:$remotedir/ &
+  rsync -avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
   upload_pids="$upload_pids $!"
 done
 

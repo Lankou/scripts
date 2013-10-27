@@ -2,6 +2,7 @@
 
 PIDFILE=/var/run/ddns.pid
 LOGFILE=/var/log/ddns-up.log
+APIURL="https://dnsapi.cn"
 GETIPURL=
 LOGIN=
 PASS=
@@ -10,19 +11,18 @@ SUBDOM=
 INTERVAL="120"
 
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
-action() { curl --silent -X POST "$1"; }
+action() { curl --silent -X POST "$@"; }
 jsonpretty() { python -mjson.tool; }
 getip() { action $GETIPURL; }
 getip_post() { tr -d "\n"; }
-getinfo() { action $APIURL/Domain.List $QUERY; }
+getinfo() { action $APIURL/Domain.List -d $QUERY; }
 getdomid() { jsonpretty | grep -E '\"name\":.*\"'$DOMAIN'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
-getdominfo() { action $APIURL/Record.List $QUERY$RECLIST; }
+getdominfo() { action $APIURL/Record.List -d $QUERY$RECLIST; }
 getrecid() { jsonpretty | grep -E '\"name\":.*\"'$SUBDOM'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
 getrecord() { action $APIURL/Record.Info -d $QUERY$DOMINFO; }
 getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " "; }
 updateip() { action $APIURL/Record.Ddns -d $UPDATE; }
 
-APIURL="https://dnsapi.cn"
 FORMAT="json"
 RECLINE="默认"
 QUERY="login_email=$LOGIN&login_password=$PASS&format=$FORMAT"

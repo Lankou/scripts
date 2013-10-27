@@ -32,7 +32,7 @@ DIR=$(getent passwd $PGUSER | cut -d ':' -f 6)/db-backup
 # happen within the log. Normally you don't need to change it.
 LOGFILE=$DIR/db-backup.log
 
-logtime() { date +"%Y/%m/%d %H:%M:%S" }
+logtime() { date +"%Y/%m/%d %H:%M:%S"; }
 
 # Add a variable to store current backup month.
 # Saves some scripting pain..

@@ -16,7 +16,7 @@ remoteowner=www-data
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
-USE_CCACHE=1
+export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
@@ -43,7 +43,7 @@ for dir in $backupdir $logdir; do
 done
 
 for targets in $@; do
-  cat $workdir/vendor/aokp/products/AndroidProducts.mk | grep -E ^\  | cut -d/ -f2 | cut -d. -f1 | grep $targets &> /dev/null
+  grep -E '^\ ' $workdir/vendor/aokp/products/AndroidProducts.mk | cut -d/ -f2 | cut -d. -f1 | grep $targets &> /dev/null
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
     exit 1

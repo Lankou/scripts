@@ -9,25 +9,25 @@ DOMAIN=
 SUBDOM=
 INTERVAL="120"
 
-logtime() { date +"%Y-%m-%d %H:%M:%S" }
-action() { curl --silent -X POST $1 }
-jsonpretty() { python -mjson.tool }
-getip() { action $GETIPURL }
-getip_post() { tr -d "\n" }
-getinfo() { action $APIURL/Domain.List $QUERY }
-getdomid() { jsonpretty | grep -E '\"name\":.*\"$DOMAIN\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}' }
-getdominfo() { action $APIURL/Record.List $QUERY$RECLIST }
-getrecid() { jsonpretty | grep -E '\"name\":.*\"$SUBDOM\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}' }
-getrecord() { action $APIURL/Record.Info -d $QUERY$DOMINFO }
-getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " " }
-updateip() { action $APIURL/Record.Ddns -d $UPDATE }
+logtime() { date +"%Y-%m-%d %H:%M:%S"; }
+action() { curl --silent -X POST "$1"; }
+jsonpretty() { python -mjson.tool; }
+getip() { action $GETIPURL; }
+getip_post() { tr -d "\n"; }
+getinfo() { action $APIURL/Domain.List $QUERY; }
+getdomid() { jsonpretty | grep -E '\"name\":.*\"'$DOMAIN'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
+getdominfo() { action $APIURL/Record.List $QUERY$RECLIST; }
+getrecid() { jsonpretty | grep -E '\"name\":.*\"'$SUBDOM'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
+getrecord() { action $APIURL/Record.Info -d $QUERY$DOMINFO; }
+getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " "; }
+updateip() { action $APIURL/Record.Ddns -d $UPDATE; }
 
 APIURL="https://dnsapi.cn"
 FORMAT="json"
 RECLINE="默认"
 QUERY="login_email=$LOGIN&login_password=$PASS&format=$FORMAT"
 ACCINFO=$(getinfo)
-DOMID=$(echo $ACCINFO | getdomid)
+DOMID=$(echo "$ACCINFO" | getdomid)
 RECLIST="&domain_id=$DOMID"
 RECID=$(getdominfo | getrecid)
 DOMINFO="&domain_id=$DOMID&record_id=$RECID"
@@ -55,13 +55,6 @@ if [ -f $PIDFILE ]; then
 else
   echo $$ > $PIDFILE
 fi
-
-# Log rotation.
-# This part should be replaced by the system logrotate tool.
-
-[ $(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc) -ne 0 ] &&
-  tar -czf $LOGFILE-$(date +%Y%m%d).tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
-  echo "$(logtime): Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE
 
 # Non-stop loop for checking the DDNS status.
 # It will get the record from DNSPod every $INTERVAL seconds.

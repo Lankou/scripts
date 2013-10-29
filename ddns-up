@@ -22,11 +22,36 @@ getrecid() { jsonpretty | grep -E '\"name\":.*\"'$SUBDOM'\"' -n5 | grep \"id\" |
 getrecord() { action $APIURL/Record.Info -d $QUERY$DOMINFO; }
 getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " "; }
 updateip() { action $APIURL/Record.Ddns -d $UPDATE; }
+checkinfo() {
+  echo $ACCINFO | grep "successful" &> /dev/null
+  if [ ${PIPESTATUS[1]} -eq 0 ]; then
+    SUCCESS=true
+  else
+    SUCCESS=false
+  fi
+}
 
 FORMAT="json"
 RECLINE="默认"
 QUERY="login_email=$LOGIN&login_password=$PASS&format=$FORMAT"
 ACCINFO=$(getinfo)
+
+SUCCESS=false
+i=0
+while [[ "$SUCCESS" = "false" && $i -le 5 ]]; do
+  echo "$(logtime): Trying to get account information..." | tee -a $LOGFILE
+  checkinfo
+  [ $i -ne 0 ] && echo "$(logtime): Retrying. Count: $i" | tee -a $LOGFILE
+  let i+=1
+done
+
+if [ "$SUCCESS" = "false" ]; then
+  echo "$(logtime): Cannot obtain account informaton. Exiting..." | tee -a $LOGFILE
+  exit 1
+fi
+
+echo "$(logtime): Account information acquired." | tee -a $LOGFILE
+
 DOMID=$(echo "$ACCINFO" | getdomid)
 RECLIST="&domain_id=$DOMID"
 RECID=$(getdominfo | getrecid)
@@ -43,14 +68,14 @@ UPDATE=$QUERY$DOMINFO"&record_line=$RECLINE&sub_domain=$SUBDOM"
 #   rare case, but it should be under consideration.
 
 if [ -f $PIDFILE ]; then
-  echo "$(logtime) - PID file exists. Checking for running process." | tee -a $LOGFILE
+  echo "$(logtime): PID file exists. Checking for running process." | tee -a $LOGFILE
   ps up $(cat $PIDFILE) &> /dev/null
   if [ $? -ne 0 ]; then
-    echo "$(logtime) - PID is stale. Remove and starting." | tee -a $LOGFILE
+    echo "$(logtime): PID is stale. Remove and starting." | tee -a $LOGFILE
     rm $PIDFILE
     echo $$ > $PIDFILE
   else
-    echo "$(logtime) - Process is still up and running. Script aborted." | tee -a $LOGFILE
+    echo "$(logtime): Process is still up and running. Script aborted." | tee -a $LOGFILE
   fi
 else
   echo $$ > $PIDFILE

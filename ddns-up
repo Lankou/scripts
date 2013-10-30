@@ -43,11 +43,11 @@ jsonpretty() { python -mjson.tool; }
 getip() { actionget $GETIPURL; }
 getip_post() { tr -d "\n"; }
 getinfo() { actionpost $APIURL/Domain.List -d $QUERY; }
-getdomid() { jsonpretty | grep -E '\"name\":.*\"'$DOMAIN'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
+getdomid() { jsonpretty | grep -E '\"'$DOMAIN'\"' -B3 | grep -Eo '[0-9]{4,}'; }
 getdominfo() { actionpost $APIURL/Record.List -d $QUERY$RECLIST; }
-getrecid() { jsonpretty | grep -E '\"name\":.*\"'$SUBDOM'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
+getrecid() { jsonpretty | grep -E '\"'$SUBDOM'\"' -B4 | grep -Eo '[0-9]{4,}'; }
 getrecord() { actionpost $APIURL/Record.Info -d $QUERY$DOMINFO; }
-getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " "; }
+getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\",\ "; }
 updateip() { actionpost $APIURL/Record.Ddns -d $UPDATE; }
 checkinfo() {
   echo $ACCINFO | grep "successful" &> /dev/null

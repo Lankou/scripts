@@ -10,6 +10,32 @@ DOMAIN=
 SUBDOM=
 INTERVAL="120"
 
+trappy() {
+  case $1 in
+    INT)
+      echo "Keyboard interrupt detected, exiting." | tee -a $LOGFILE
+      [ -f $PIDFILE ] && rm $PIDFILE
+      exit 2
+      ;;
+    TERM)
+      echo "SIGTERM received, exiting." | tee -a $LOGFILE
+      [ -f $PIDFILE ] && rm $PIDFILE
+      exit 15
+      ;;
+    HUP)
+      echo "SIGHUP received, restarting." | tee -a $LOGFILE
+      [ -f $PIDFILE ] && rm $PIDFILE
+      $0
+      kill -9 $$
+      ;;
+esac
+}
+
+# Traps
+trap 'trappy INT' SIGINT
+trap 'trappy TERM' SIGTERM
+trap 'trappy HUP' SIGHUP
+
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
 actionget() { curl -4 --silent -X GET "$@"; }
 actionpost() { curl -4 --silent -X POST "$@"; }
@@ -90,10 +116,10 @@ while true; do
   DOMIP=$(getrecord | getrecord_post)
   if [[ "$MYIP" = "$DOMIP" ]]; then
     echo "$(logtime): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
-    sleep $INTERVAL
+    sleep $INTERVAL & wait $!
   else
     echo "$(logtime): IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
     updateip
-    sleep $INTERVAL
+    sleep $INTERVAL & wait $!
   fi
 done

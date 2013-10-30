@@ -87,7 +87,7 @@ fi
 while true; do
   MYIP=$(getip | getip_post)
   DOMIP=$(getrecord | getrecord_post)
-  if [ $MYIP = $DOMIP ]; then
+  if [[ "$MYIP" = "$DOMIP" ]]; then
     echo "$(logtime): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
     sleep $INTERVAL
   else

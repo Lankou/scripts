@@ -49,7 +49,7 @@ echo -e "\e[1;33;40m$(logtime): \e[1;33;40m$CURRENTDIR doesn't exist. It will be
 # Normally you don't need to change it. If the space check function doesn't work,
 # you can test it out in an interactive shell and see if the output is correct.
 # This has been tested on Lubuntu 13.04 with Simplified Chinese as default language.
-FREESPACE=$(df -H $DIR | awk '{ print $4 }' | tail -n1 | cut -d 'G' -f 1)
+FREESPACE=$(df -H -B G $DIR | awk '{ print $4 }' | tail -n1 | tr -d 'G')
 
 # Check for HDD free space. If it's less than 10 GigaBytes, delete
 # backups that are older than 3 months.

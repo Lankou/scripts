@@ -35,7 +35,7 @@ for vars in remotedir remote logfile buildlog; do
   [ -z \$vars ] && echo "Variable $vars is not defined. Script aborted." && exit 1
 done
 
-ssh $remote "ls $remotedir &> /dev/null"
+ssh -4 $remote "ls $remotedir &> /dev/null"
 [ $? -ne 0 ] && echo "Cannot access $remotedir on $remote. Please check settings in script." && exit 1
 
 for dir in $backupdir $logdir; do
@@ -78,7 +78,7 @@ for target in $@; do
   targetzip=aokp_$target\_jb-mr2_unofficial_$D.zip
   cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-  rsync -avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
+  rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
   upload_pids="$upload_pids $!"
 done
 
@@ -86,7 +86,7 @@ for process in $upload_pids; do
   wait $process > /dev/null 2>&1
 done
 
-ssh $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
+ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
 
 stop=$(date +%s)
 total=$((stop - start))

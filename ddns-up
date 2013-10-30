@@ -3,7 +3,7 @@
 PIDFILE=/var/run/ddns.pid
 LOGFILE=/var/log/ddns-up.log
 APIURL="https://dnsapi.cn"
-GETIPURL=
+GETIPURL="http://icanhazip.com"
 LOGIN=
 PASS=
 DOMAIN=

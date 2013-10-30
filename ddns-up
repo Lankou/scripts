@@ -11,17 +11,18 @@ SUBDOM=
 INTERVAL="120"
 
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
-action() { curl -4 --silent -X POST "$@"; }
+actionpost() { curl -4 --silent -X POST "$@"; }
+actionget() { curl -4 --silent -X GET "$@"; }
 jsonpretty() { python -mjson.tool; }
-getip() { action $GETIPURL; }
+getip() { actionget $GETIPURL; }
 getip_post() { tr -d "\n"; }
-getinfo() { action $APIURL/Domain.List -d $QUERY; }
+getinfo() { actionpost $APIURL/Domain.List -d $QUERY; }
 getdomid() { jsonpretty | grep -E '\"name\":.*\"'$DOMAIN'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
-getdominfo() { action $APIURL/Record.List -d $QUERY$RECLIST; }
+getdominfo() { actionpost $APIURL/Record.List -d $QUERY$RECLIST; }
 getrecid() { jsonpretty | grep -E '\"name\":.*\"'$SUBDOM'\"' -n5 | grep \"id\" | grep -Eo '[0-9]{4,}'; }
-getrecord() { action $APIURL/Record.Info -d $QUERY$DOMINFO; }
+getrecord() { actionpost $APIURL/Record.Info -d $QUERY$DOMINFO; }
 getrecord_post() { jsonpretty | grep value | cut -d: -f2 | tr -d "\"" | tr -d " "; }
-updateip() { action $APIURL/Record.Ddns -d $UPDATE; }
+updateip() { actionpost $APIURL/Record.Ddns -d $UPDATE; }
 checkinfo() {
   echo $ACCINFO | grep "successful" &> /dev/null
   if [ ${PIPESTATUS[1]} -eq 0 ]; then

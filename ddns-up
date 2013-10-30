@@ -39,18 +39,18 @@ ACCINFO=$(getinfo)
 SUCCESS=false
 i=0
 while [[ "$SUCCESS" = "false" && $i -le 5 ]]; do
-  echo "$(logtime): Trying to get account information..." | tee -a $LOGFILE
+  [ $i -eq 0 ] && echo "$(logtime): Trying to get account information..." | tee -a $LOGFILE
   checkinfo
   [ $i -ne 0 ] && echo "$(logtime): Retrying. Count: $i" | tee -a $LOGFILE
   let i+=1
 done
 
 if [ "$SUCCESS" = "false" ]; then
-  echo "$(logtime): Cannot obtain account informaton. Exiting..." | tee -a $LOGFILE
+  echo "$(logtime): Cannot obtain account information. Please check script variables. Exiting..." | tee -a $LOGFILE
   exit 1
 fi
 
-echo "$(logtime): Account information acquired." | tee -a $LOGFILE
+echo "$(logtime): Account information acquired. Proceeding." | tee -a $LOGFILE
 
 DOMID=$(echo "$ACCINFO" | getdomid)
 RECLIST="&domain_id=$DOMID"
@@ -62,8 +62,6 @@ UPDATE=$QUERY$DOMINFO"&record_line=$RECLINE&sub_domain=$SUBDOM"
 # If one exists, see if it's alive.
 # If yes, abort. If no, delete stale PID file (if exists) and start the process.
 # TODO:
-# * To support IPv6 (currently it should favor IPv6 as most systems' default, unless you have
-#   tweaked your system to use IPv4 first or IPv6 times out.)
 # * Handle situations where another process running under the old PID. Although this is a
 #   rare case, but it should be under consideration.
 

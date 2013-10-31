@@ -90,11 +90,6 @@ fi
 OWNDB=$(psql -U $PGUSER -c "SELECT datname FROM pg_database JOIN pg_authid ON pg_database.datdba = pg_authid.oid WHERE rolname = '$PGUSER'" | tail -n +3 | head -n -2)
 echo -e "$YELLOW$(logtime):$GREEN Databases owned by $CYAN$PGUSER$GREEN:\n$PINK$OWNDB$GREEN\nThey're going to be backed up.\n$ORIGCOLOR" 2>&1 | tee -a $LOGFILE
 
-# Log rotation. If log file is bigger than 512M, compress it and delete original log.
-[ $(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc) -ne 0 ] &&
-tar -Pczf $LOGFILE-$YMD.tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
-echo -e "$YELLOW$(logtime):$YELLOW Last log file was too big (>4M), compressed for archive and creating a new one.$ORIGCOLOR" 2>&1 | tee -a $LOGFILE
-
 # Start backup!
 for DB in $OWNDB; do
     # Check if the backup going to be created exists.

@@ -6,11 +6,6 @@ YMD=$(date +%Y%m%d-%H)
 
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
 
-# Log rotation.
-[ "$(echo "$(du $LOGFILE | awk '{ print $1 }') > 4096" | bc)" -ne 0 ] &&
-tar -czf $LOGFILE-"$YMD".tar.gz $LOGFILE && rm $LOGFILE && touch $LOGFILE &&
-echo "$(logtime): Last log file was too big (>4M), compressed for archive and creating a new one." >> $LOGFILE 
-
 ps up "$(cat $PIDFILE)" &> /dev/null
 if [ $? -eq 0 ]; then
     echo "DDNS daemon checked: $(logtime), Status: Running" >> $LOGFILE

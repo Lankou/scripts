@@ -1,7 +1,7 @@
 #!/bin/bash
 
-PIDFILE=/var/run/ddns.pid
-LOGFILE=/var/log/ddns-up.log
+PIDFILE="/var/run/ddns.pid"
+LOGFILE="/var/log/ddns-up.log"
 APIURL="https://dnsapi.cn"
 GETIPURL="http://icanhazip.com"
 LOGIN=
@@ -23,6 +23,7 @@ trappy() {
       exit 15
       ;;
     HUP)
+      # This part should need some work.
       echo "SIGHUP received, restarting." | tee -a $LOGFILE
       [ -f $PIDFILE ] && rm $PIDFILE
       $0
@@ -79,11 +80,11 @@ fi
 
 echo "$(logtime): Account information acquired. Proceeding." | tee -a $LOGFILE
 
-DOMID=$(echo "$ACCINFO" | getdomid)
+DOMID="$(echo "$ACCINFO" | getdomid)"
 RECLIST="&domain_id=$DOMID"
-RECID=$(getdominfo | getrecid)
+RECID="$(getdominfo | getrecid)"
 DOMINFO="&domain_id=$DOMID&record_id=$RECID"
-UPDATE=$QUERY$DOMINFO"&record_line=$RECLINE&sub_domain=$SUBDOM"
+UPDATE="$QUERY$DOMINFO&record_line=$RECLINE&sub_domain=$SUBDOM"
 
 # Check for previously running instances.
 # If one exists, see if it's alive.
@@ -115,10 +116,10 @@ while true; do
   MYIP=$(getip | getip_post)
   DOMIP=$(getrecord | getrecord_post)
   if [[ "$MYIP" = "$DOMIP" ]]; then
-    echo "$(logtime): IP not changed: $MYIP. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
+    echo "$(logtime): IP not changed: ${MYIP}. Sleeping for $INTERVAL seconds." | tee -a $LOGFILE
     sleep $INTERVAL & wait $!
   else
-    echo "$(logtime): IP change detected. Original: $DOMIP -- Updating to: $MYIP " | tee -a $LOGFILE
+    echo "$(logtime): IP change detected. Original: $DOMIP -- Updating to: $MYIP" | tee -a $LOGFILE
     updateip
     sleep $INTERVAL & wait $!
   fi

@@ -2,7 +2,6 @@
 LOGFILE=/var/log/ddns-check.log
 DDNSBIN=/usr/bin/ddns-up
 PIDFILE=/var/run/ddns.pid
-YMD=$(date +%Y%m%d-%H)
 
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
 
@@ -12,5 +11,5 @@ if [ $? -eq 0 ]; then
     exit 0
 else
     echo "DDNS daemon checked: $(logtime), Status: Not running" >> $LOGFILE
-    $DDNSBIN
+    $DDNSBIN &
 fi

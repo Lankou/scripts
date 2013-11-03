@@ -66,8 +66,8 @@ if [ $(echo "$FREESPACE <= 10" | bc) -ne 0 ]; then
     echo -e "$YELLOW$(logtime):$YELLOW Free disk space is under 10 gigabytes. Clean up process started.$ORIGCOLOR" 2>&1 | tee -a $LOGFILE
     echo -e "$YELLOW$(logtime):$RED Directory deletion records:$ORIGCOLOR\n" 2>&1 | tee -a $LOGFILE
 # First check for backups that are in the same year.
-    for MONDIR in $(ls -1 $DIR/$YEAR/); do
-        [ $MONDIR -le $(($MONTH-3)) ] && rm -rf $DIR/$YEAR/$MONDIR &&
+    for MONDIR in $DIR/$YEAR/*; do
+        [[ -d $MONDIR && $MONDIR -le $(($MONTH-3)) ]] && rm -rf $DIR/$YEAR/$MONDIR &&
         echo -e "$YELLOW$(logtime):$RED Deletion:$ORIGCOLOR $DIR/$YEAR/$MONDIR" 2>&1 | tee -a $LOGFILE
     done
 
@@ -75,8 +75,8 @@ if [ $(echo "$FREESPACE <= 10" | bc) -ne 0 ]; then
     if [ -d $DIR/$(($YEAR-1)) ]; then
 
 # If exists, then delete backups that are older than 3 months.
-        for MONDIR in $(ls -1 $DIR/$(($YEAR-1))); do
-            [ $(($MONTH+12-$MONDIR)) -gt 3 ] && rm -rf $DIR/$(($YEAR-1))/$MONDIR &&
+        for MONDIR in $DIR/$(($YEAR-1))/*; do
+            [[ -d $MONDIR && $(($MONTH+12-$MONDIR)) -gt 3 ]] && rm -rf $DIR/$(($YEAR-1))/$MONDIR &&
             echo -e "$YELLOW$(logtime):$RED Deletion:$ORIGCOLOR $DIR/$(($YEAR-1))/$MONDIR" 2>&1 | tee -a $LOGFILE
         done
 

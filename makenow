@@ -75,7 +75,8 @@ for target in $@; do
     exit 1
   fi
   singlestop=$(date +%s)
-  targetzip=aokp_$target\_jb-mr2_unofficial_$D.zip
+  build_date=$(LC_ALL=C date +%Y-%m-%d)
+  targetzip=aokp_$target\_jb-mr2_unofficial_$build_date.zip
   cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
   rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &

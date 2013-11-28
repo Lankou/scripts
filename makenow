@@ -68,6 +68,7 @@ start=$(date +%s)
 
 for target in $@; do
   singlestart=$(date +%s)
+  build_date=$(LC_ALL=C date +%Y-%m-%d)
   brunch $target 2>&1 | tee -a $logdir/$buildlog
   if [ ${PIPESTATUS[0]} -ne 0 ]; then
     echo "Build error. Please check log." | tee -a $logdir/$buildlog
@@ -75,7 +76,6 @@ for target in $@; do
     exit 1
   fi
   singlestop=$(date +%s)
-  build_date=$(LC_ALL=C date +%Y-%m-%d)
   targetzip=aokp_$target\_jb-mr2_unofficial_$build_date.zip
   cp $outdir/$target/$targetzip ~/builds/
   echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile

@@ -43,7 +43,7 @@ for dir in $backupdir $logdir; do
 done
 
 for targets in $@; do
-  grep -E '^\ ' $workdir/vendor/aokp/products/AndroidProducts.mk | cut -d/ -f2 | cut -d. -f1 | grep $targets &> /dev/null
+  cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g' | grep $targets &> /dev/null
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
     exit 1

@@ -55,7 +55,13 @@ for targets in $@; do
   fi
 done
 
-echo "Making AOKP for $# devices: $(echo $@ | sed -E 's/-noclean//g')" | tee -a $logdir/$buildlog
+params=0
+for each in $@; do
+  echo $each | egrep ^- &> /dev/null
+  [ $? -eq 0 ] && let params+=1
+done
+
+echo "Making AOKP for $(($#-$params)) devices: $(echo $@ | sed -E 's/-noclean//g')" | tee -a $logdir/$buildlog
 echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
 echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
 echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog

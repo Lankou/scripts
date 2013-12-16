@@ -1,6 +1,4 @@
 #!/bin/bash
-[ -z $1 ] && echo "Usage: $(basename $0) devices" && exit 1
-
 timeconv()
 {
   x=$1
@@ -18,6 +16,8 @@ logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
 export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
+
+[ -z $1 ] && echo -e "Usage: $(basename $0) [devices]\nAvailable targets:\n$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')" && exit 1
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product

@@ -17,7 +17,7 @@ buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
 export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
 
-[ -z $1 ] && echo -e "Usage: $(basename $0) [devices]\nAvailable targets:\n$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')" && exit 1
+[ -z $1 ] && echo -e "Usage: $(basename $0) [devices] (-noclean)\nAvailable targets:\n$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')" && exit 1
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product
@@ -43,14 +43,19 @@ for dir in $backupdir $logdir; do
 done
 
 for targets in $@; do
-  cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g' | grep $targets &> /dev/null
+  echo $targets | egrep ^- &> /dev/null
+  if [ $? -eq 0 ]; then
+    true
+  else
+    cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g' | grep $targets &> /dev/null
+  fi
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
     exit 1
   fi
 done
 
-echo "Making AOKP for $# devices: $@" | tee -a $logdir/$buildlog
+echo "Making AOKP for $# devices: $(echo $@ | sed -E 's/-noclean//g')" | tee -a $logdir/$buildlog
 echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
 echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
 echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog
@@ -62,25 +67,38 @@ sleep 5
 cd $workdir
 . $workdir/build/envsetup.sh
 
-make clean
+clean_build="true"
+for each in $@; do
+  [ "$each" == "-noclean" ] && clean_build="false"
+done
+
+if [ "$clean_build" == "true" ]; then
+  make clean
+fi
 
 start=$(date +%s)
 
 for target in $@; do
-  singlestart=$(date +%s)
-  build_date=$(LC_ALL=C date +%Y-%m-%d)
-  brunch $target 2>&1 | tee -a $logdir/$buildlog
-  if [ ${PIPESTATUS[0]} -ne 0 ]; then
-    echo "Build error. Please check log." | tee -a $logdir/$buildlog
-    echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | tee -a $logdir/$buildlog
-    exit 1
+  echo $target | egrep ^- &> /dev/null
+  if [ $? -eq 0]; then
+    true
+  else
+    singlestart=$(date +%s)
+    build_date=$(LC_ALL=C date +%Y-%m-%d)
+    echo $target | egrep ^-
+    brunch $target 2>&1 | tee -a $logdir/$buildlog
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+      echo "Build error. Please check log." | tee -a $logdir/$buildlog
+      echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | tee -a $logdir/$buildlog
+      exit 1
+    fi
+    singlestop=$(date +%s)
+    targetzip=aokp_$target\_jb-mr2_unofficial_$build_date.zip
+    cp $outdir/$target/$targetzip ~/builds/
+    echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
+    rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
+    upload_pids="$upload_pids $!"
   fi
-  singlestop=$(date +%s)
-  targetzip=aokp_$target\_jb-mr2_unofficial_$build_date.zip
-  cp $outdir/$target/$targetzip ~/builds/
-  echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-  rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
-  upload_pids="$upload_pids $!"
 done
 
 for process in $upload_pids; do

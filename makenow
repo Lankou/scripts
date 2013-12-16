@@ -80,7 +80,7 @@ start=$(date +%s)
 
 for target in $@; do
   echo $target | egrep ^- &> /dev/null
-  if [ $? -eq 0]; then
+  if [ $? -eq 0 ]; then
     true
   else
     singlestart=$(date +%s)

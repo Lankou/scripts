@@ -99,8 +99,8 @@ for target in $@; do
       exit 1
     fi
     singlestop=$(date +%s)
-    targetzip=aokp_$target\_jb-mr2_unofficial_$build_date.zip
-    cp $outdir/$target/$targetzip ~/builds/
+    targetzip=aokp_$target\_kitkat_unofficial_$build_date.zip
+    cp $outdir/$target/$targetzip $backupdir/
     echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
     rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
     upload_pids="$upload_pids $!"

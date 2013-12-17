@@ -14,10 +14,27 @@ remoteowner=www-data
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
+devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
 export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
 
-[ -z $1 ] && echo -e "Usage: $(basename $0) [devices] (-noclean)\nAvailable targets:\n$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')" && exit 1
+[ -z $1 ] && echo -e "Usage: $(basename $0) [devices] (-noclean)\nAvailable targets:\n$devices" && exit 1
+
+for each in $@; do
+  case $each in
+    -noclean)
+      noclean=true
+      ;;
+    -noupload)
+      noupload=true
+      ;;
+    *)
+      buildtargets="$buildtargets $each"
+      ;;
+  esac
+done
+
+[ -z $buildtargets ] && echo "Please tell me what targets to build." && exit 1
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product
@@ -42,12 +59,12 @@ for dir in $backupdir $logdir; do
   [ ! -d $dir ] && mkdir -p $dir
 done
 
-for targets in $@; do
+for targets in $buildtargets; do
   echo $targets | egrep ^- &> /dev/null
   if [ $? -eq 0 ]; then
     true
   else
-    cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g' | grep $targets &> /dev/null
+    echo $devices | grep $targets &> /dev/null
   fi
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
@@ -55,13 +72,9 @@ for targets in $@; do
   fi
 done
 
-params=0
-for each in $@; do
-  echo $each | egrep ^- &> /dev/null
-  [ $? -eq 0 ] && let params+=1
-done
+total=$(echo $buildtargets | wc -w)
 
-echo "Making AOKP for $(($#-$params)) devices: $(echo $@ | sed -E 's/-noclean//g')" | tee -a $logdir/$buildlog
+echo "Making AOKP for $total devices: $buildtargets" | tee -a $logdir/$buildlog
 echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
 echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
 echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog
@@ -73,18 +86,13 @@ sleep 5
 cd $workdir
 . $workdir/build/envsetup.sh
 
-clean_build="true"
-for each in $@; do
-  [ "$each" == "-noclean" ] && clean_build="false"
-done
-
-if [ "$clean_build" == "true" ]; then
+if [ "$noclean" != "true" ]; then
   make clean
 fi
 
 start=$(date +%s)
 
-for target in $@; do
+for target in $buildtargets; do
   echo $target | egrep ^- &> /dev/null
   if [ $? -eq 0 ]; then
     true
@@ -96,14 +104,26 @@ for target in $@; do
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
       echo "Build error. Please check log." | tee -a $logdir/$buildlog
       echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | tee -a $logdir/$buildlog
-      exit 1
+      if [ -z $success ]; then
+        echo "Failed the first time. Aborting." | tee -a $logdir/$buildlog
+        exit 1
+      else
+        echo "At least one target was being built successfully." | tee -a $logdir/$buildlog
+        echo "Build process will continue." | tee -a $logdir/$buildlog
+        echo "Successful targets: $success" | tee -a $logdir/$buildlog
+        failed="$failed $target"
+      fi
+    else
+      success="$success $target"
     fi
     singlestop=$(date +%s)
     targetzip=aokp_$target\_kitkat_unofficial_$build_date.zip
     cp $outdir/$target/$targetzip $backupdir/
     echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
-    rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
-    upload_pids="$upload_pids $!"
+    if [ "$noupload" != "true" ]; then
+      rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
+      upload_pids="$upload_pids $!"
+    fi
   fi
 done
 
@@ -116,5 +136,13 @@ ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remo
 stop=$(date +%s)
 total=$((stop - start))
 
+if [ -z $failed ]; then
+  echo -e "Everything built fine.\n" | tee -a $logdir/$buildlog
+  echo -e "These targets were built successfully: $success\n" | tee -a $logdir/$buildlog
+else
+  echo -e "Some of the targets failed to build.\n" | tee -a $logdir/$buildlog
+  echo -e "These targets were built successfully: $success\n" | tee -a $logdir/$buildlog
+  echo -e "These targets failed: $failed\n" | tee -a $logdir/$buildlog
+fi
 echo -e "Total time: $(timeconv $total)\n" | tee -a $logdir/$logfile
 cat $logdir/$logfile

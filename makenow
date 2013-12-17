@@ -24,9 +24,11 @@ for each in $@; do
   case $each in
     -noclean)
       noclean=true
+      flag="$flag $each"
       ;;
     -noupload)
       noupload=true
+      flag="$flag $each"
       ;;
     *)
       buildtargets="$buildtargets $each"
@@ -75,6 +77,7 @@ done
 total=$(echo $buildtargets | wc -w)
 
 echo "Making AOKP for $total devices: $buildtargets" | tee -a $logdir/$buildlog
+[ ! -z $flag ] && echo "Using flags: $flag" | tee -a $logdir/$buildlog
 echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
 echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
 echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog

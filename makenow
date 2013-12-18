@@ -14,11 +14,27 @@ remoteowner=www-data
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
-devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
+if [ -d $workdir ]; then
+  devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
+fi
 export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp
 
-[ -z $1 ] && echo -e "Usage: $(basename $0) [devices] (-noclean)\nAvailable targets:\n$devices" && exit 1
+if [ -z $1 ]; then
+ echo -e "Usage: $(basename $0) [devices] (-noclean | -noupload)"
+ if [ -f $workdir/vendor/aokp/vendorsetup.sh ]; then
+   echo "Available targets:\n$devices"
+ else
+   echo "'workdir' not defined in script, or the value isn't right."
+   echo "Available targets won't be shown until it's correctly set."
+   if [ -z $workdir ]; then
+     echo "Current value: (not set)"
+   else
+     echo "Current value: $workdir"
+   fi
+ fi
+ exit 1
+fi
 
 for each in $@; do
   case $each in
@@ -46,6 +62,10 @@ else
   [ -d $OUT_DIR_COMMON_BASE/aokp ] && rm -rf $OUT_DIR_COMMON_BASE/aokp
 fi
 
+for dir in $backupdir $logdir; do
+  [ ! -d $dir ] && mkdir -p $dir
+done
+
 for dirs in $workdir $backupdir $logdir; do
   [ ! -d $dirs ] && echo "Defined directory $dirs doesn't exist. Please check script or create the directory." && exit 1
 done
@@ -57,17 +77,8 @@ done
 ssh -4 $remote "ls $remotedir &> /dev/null"
 [ $? -ne 0 ] && echo "Cannot access $remotedir on $remote. Please check settings in script." && exit 1
 
-for dir in $backupdir $logdir; do
-  [ ! -d $dir ] && mkdir -p $dir
-done
-
 for targets in $buildtargets; do
-  echo $targets | egrep ^- &> /dev/null
-  if [ $? -eq 0 ]; then
-    true
-  else
-    echo $devices | grep $targets &> /dev/null
-  fi
+  echo $devices | grep $targets &> /dev/null
   if [ $? -ne 0 ]; then
     echo "Device '$targets' doesn't exist."
     exit 1
@@ -76,8 +87,8 @@ done
 
 total=$(echo $buildtargets | wc -w)
 
-echo "Making AOKP for $total devices: $buildtargets" | tee -a $logdir/$buildlog
-[ ! -z $flag ] && echo "Using flags: $flag" | tee -a $logdir/$buildlog
+echo "Making AOKP for $total devices:$buildtargets" | tee -a $logdir/$buildlog
+[ ! -z $flag ] && echo "Using flags:$flag" | tee -a $logdir/$buildlog
 echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
 echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
 echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog
@@ -130,11 +141,13 @@ for target in $buildtargets; do
   fi
 done
 
-for process in $upload_pids; do
-  wait $process > /dev/null 2>&1
-done
+if [ "$noupload" != "true" ]; then
+  for process in $upload_pids; do
+    wait $process > /dev/null 2>&1
+  done
 
-ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
+  ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
+fi
 
 stop=$(date +%s)
 total=$((stop - start))

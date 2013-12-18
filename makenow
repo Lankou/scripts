@@ -36,7 +36,7 @@ for each in $@; do
   esac
 done
 
-[ -z $buildtargets ] && echo "Please tell me what targets to build." && exit 1
+[ -z "$buildtargets" ] && echo "Please tell me what targets to build." && exit 1
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product

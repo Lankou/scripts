@@ -1,0 +1,49 @@
+#!/bin/bash
+if [ -z $1 ] || [ -z $2 ] || [ -z $3 ]; then
+  echo "Usage: $(basename $0) [aokp src dir] [branch] [devices,vendors]"
+  echo "e.g. $(basename $0) ~/aokp kitkat hammerhead,mako,yuga,maguro,lge,sony,samsung"
+  echo "This will put source for AOKP kitkat branch under ~/aokp and sync needed repos for hammerhead, mako, yuga and maguro."
+  exit 1
+fi
+
+if [[ "$UID" -eq "0" ]]; then
+  echo "You can't run this as root."
+  exit 1
+fi
+
+aokpsrc=$1
+branch=$2
+repos=$3
+
+
+echo "This script will set up AOKP sources."
+# Install required packages for building
+sudo apt-get install -y git gnupg flex bison gperf build-essential zip curl libc6-dev libncurses5-dev:i386 x11proto-core-dev libx11-dev:i386 libreadline6-dev:i386 libgl1-mesa-glx:i386 libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc zlib1g-dev:i386 pngcrush schedtool
+sudo ln -s /usr/lib/i386-linux-gnu/mesa/libGL.so.1 /usr/lib/i386-linux-gnu/libGL.so
+
+# Add Oracle Java repo from webupd8team and install Java 6
+sudo add-apt-repository -y ppa:webupd8team/java
+sudo apt-get update
+echo debconf shared/accepted-oracle-license-v1-1 select true | sudo debconf-set-selections
+echo debconf shared/accepted-oracle-license-v1-1 seen true | sudo debconf-set-selections
+sudo apt-get install -y oracle-java6-installer
+sudo update-java-alternatives -s java-6-oracle
+sudo apt-get install -y oracle-java6-set-default
+
+mkdir ~/bin
+
+## TODO: SET PATH
+
+# Fetch repo script and make it executable
+curl http://commondatastorage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+chmod a+x ~/bin/repo
+
+# Create aokp source directory
+mkdir -p $aokpsrc
+cd $aokpsrc
+
+# Initialize repository and sync
+repo init -u https://github.com/AOKP/platform_manifest.git -b $branch -g all,-notdefault,$repos
+repo sync -j$(grep processor /proc/cpuinfo | wc -l)
+
+echo "AOKP local repo set up complete."

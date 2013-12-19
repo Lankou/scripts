@@ -14,11 +14,12 @@ fi
 aokpsrc=$1
 branch=$2
 repos=$3
+url="https://github.com/AOKP/platform_manifest.git"
 
 
 echo "This script will set up AOKP sources."
 # Install required packages for building
-sudo apt-get install -y git gnupg flex bison gperf build-essential zip curl libc6-dev libncurses5-dev:i386 x11proto-core-dev libx11-dev:i386 libreadline6-dev:i386 libgl1-mesa-glx:i386 libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc zlib1g-dev:i386 pngcrush schedtool
+sudo apt-get install -y git gnupg flex bison gperf build-essential zip curl libc6-dev libncurses5-dev:i386 x11proto-core-dev libx11-dev:i386 libreadline6-dev:i386 libgl1-mesa-glx:i386 libgl1-mesa-dev g++-multilib mingw32 tofrodos python-markdown libxml2-utils xsltproc zlib1g-dev:i386 pngcrush schedtool lzop
 sudo ln -s /usr/lib/i386-linux-gnu/mesa/libGL.so.1 /usr/lib/i386-linux-gnu/libGL.so
 
 # Add Oracle Java repo from webupd8team and install Java 6
@@ -43,7 +44,7 @@ mkdir -p $aokpsrc
 cd $aokpsrc
 
 # Initialize repository and sync
-repo init -u https://github.com/AOKP/platform_manifest.git -b $branch -g all,-notdefault,$repos
+repo init -u $url -b $branch -g all,-notdefault,$repos
 repo sync -j$(grep processor /proc/cpuinfo | wc -l)
 
 echo "AOKP local repo set up complete."

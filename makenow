@@ -15,7 +15,11 @@ logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
 if [ -d $workdir ]; then
-  devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
+#  devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
+  devices=$(ls -1 $workdir/vendor/aokp/products/ | cut -d. -f1)
+else
+  echo "Please specify working directory in the script."
+  exit 1
 fi
 export USE_CCACHE=1
 #export OUT_DIR_COMMON_BASE=/tmp

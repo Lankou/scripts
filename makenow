@@ -14,6 +14,7 @@ remoteowner=www-data
 logdir=~/make-logs
 logfile=$D.log
 buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
+cleanevery=4
 if [ -d $workdir ]; then
 #  devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
   devices=$(ls -1 $workdir/vendor/aokp/products/ | cut -d. -f1)
@@ -109,6 +110,7 @@ if [ "$noclean" != "true" ]; then
 fi
 
 start=$(date +%s)
+cleancount=0
 
 for target in $buildtargets; do
   echo $target | egrep ^- &> /dev/null
@@ -118,6 +120,9 @@ for target in $buildtargets; do
     singlestart=$(date +%s)
     build_date=$(LC_ALL=C date +%Y-%m-%d)
     echo $target | egrep ^-
+    if [ $cleancount -eq $cleanevery ]; then
+      make clean
+    fi
     brunch $target 2>&1 | tee -a $logdir/$buildlog
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
       echo "Build error. Please check log." | tee -a $logdir/$buildlog
@@ -135,6 +140,7 @@ for target in $buildtargets; do
       success="$success $target"
     fi
     singlestop=$(date +%s)
+    let cleancount+=1
     targetzip=aokp_$target\_kitkat_unofficial_$build_date.zip
     cp $outdir/$target/$targetzip $backupdir/
     echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile

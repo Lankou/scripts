@@ -1,20 +1,31 @@
 #!/bin/bash
+#############
+# FUNCTIONS #
+#############
 timeconv()
 {
   x=$1
   date -d "1970-01-01 UTC+8 +$x seconds" +"%Hh %Mm %Ss"
 }
 
-workdir=~/aokp
-D=$(LC_ALL=C date +%Y-%m-%d)
-backupdir=~/builds
-remotedir=/var/www/aokp
-remote=
-remoteowner=www-data
-logdir=~/make-logs
-logfile=$D.log
-buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log
-cleanevery=4
+#################
+# Configurables #
+#################
+workdir=~/aokp    # AOKP source directory (Required)
+D=$(LC_ALL=C date +%Y-%m-%d)    # Don't change
+backupdir=~/builds    # Where to put the finished zips? (Required)
+remotedir=/var/www/aokp    # Specify the remote directory to upload to. Leave blank to disable uploading.
+remote=username@example.com    # Specify the remote address to upload to. Leave blank to disable uploading.
+remoteowner=www-data    # Specify the owner of the file on the remove server. If this is different than the 'username' above, you will need root access to do so. Leave blank to disable uploading.
+logdir=~/make-logs    # Where to put the build logs? Leave blank to disable logging.
+logfile=$D.log    # Log file name. Normally you don't need to change it. Leave blank to disable logging
+buildlog=buildlog-$(date +%Y%m%d-%H%M%S).log    # Build log file name. All outputs from the compiling process will be logged here. Leave blank to disable logging.
+cleanevery=4    # Do 'make clean' every X times. This is to avoid building too many targets causing the disk being filled up, and build fails. Leave blank to disable this feature. Default: 4
+
+#############################################################
+# Doing the work.                                           #
+# Please don't modify the contents below, if not necessary. #
+#############################################################
 if [ -d $workdir ]; then
 #  devices=$(cat $workdir/vendor/aokp/vendorsetup.sh | sed 's/add_lunch_combo aokp_//g' | sed 's/-userdebug//g')
   devices=$(ls -1 $workdir/vendor/aokp/products/ | cut -d. -f1)
@@ -41,6 +52,12 @@ if [ -z $1 ]; then
  exit 1
 fi
 
+if [ -z $backupdir ]; then
+  echo "Variable 'backupdir' is not defined. We need this to store finished zips."
+  echo "Script aborted."
+  exit 1
+fi
+
 for each in $@; do
   case $each in
     -noclean)
@@ -51,6 +68,10 @@ for each in $@; do
       noupload=true
       flag="$flag $each"
       ;;
+    -nolog)
+      nolog=true
+      flag="$flag $each"
+      ;;
     *)
       buildtargets="$buildtargets $each"
       ;;
@@ -58,6 +79,27 @@ for each in $@; do
 done
 
 [ -z "$buildtargets" ] && echo "Please tell me what targets to build." && exit 1
+
+if [ -z $remotedir ] || [ -z $remote ]; then
+  echo "Variable 'remote' or 'remotedir' is empty. Skipping upload after build."
+  noupload=true
+fi
+
+if [ ! -z $remote ]; then
+  echo $remote | grep @ &> /dev/null
+  if [ $? -ne 0 ]; then
+    echo "Invalid remote address format. Please make sure it's formatted like: username@example.com"
+    exit 1
+  else
+    user=$(echo $remote | cut -d@ -f1)
+    host=$(echo $remote | cut -d@ -f2)
+    if [ ! -z $remoteowner ] && [ "$remoteowner" != "$user" ] && [ "$user" != "root" ]; then
+      echo "In order to change remote file's ownership, you need to use root to upload the file."
+      echo "Please change the 'remote' variable in script to: root@$host"
+      exit 1
+    fi
+  fi
+fi
 
 if [ -z $OUT_DIR_COMMON_BASE ]; then
   outdir=$workdir/out/target/product
@@ -67,20 +109,32 @@ else
   [ -d $OUT_DIR_COMMON_BASE/aokp ] && rm -rf $OUT_DIR_COMMON_BASE/aokp
 fi
 
-for dir in $backupdir $logdir; do
-  [ ! -d $dir ] && mkdir -p $dir
-done
-
-for dirs in $workdir $backupdir $logdir; do
-  [ ! -d $dirs ] && echo "Defined directory $dirs doesn't exist. Please check script or create the directory." && exit 1
-done
-
-for vars in remotedir remote logfile buildlog; do
-  [ -z \$vars ] && echo "Variable $vars is not defined. Script aborted." && exit 1
-done
+if [ -z $logdir ] || [ -z $logfile ] || [ -z $buildlog ]; then
+  echo "All or some logging variables are missing. Logging disabled."
+  nolog=true
+else
+  if [ ! -d $logdir ]; then
+    echo "Defined logging directory '$logdir' doesn't exist. Creating."
+    mkdir -p $logdir
+    if [ $? -ne 0 ]; then
+      echo "Failed to create directory '$logdir'. Please check your path."
+      exit 1
+    fi
+  fi
+  for each in $logdir/$logfile $logdir/$buildlog; do
+    touch $each
+    if [ $? -ne 0 ]; then
+      echo "Failed to create file '$each' for logging. Please check your path and file name."
+      exit 1
+    fi
+  done
+fi
 
 ssh -4 $remote "ls $remotedir &> /dev/null"
-[ $? -ne 0 ] && echo "Cannot access $remotedir on $remote. Please check settings in script." && exit 1
+if [ $? -ne 0 ]; then
+  echo "Cannot access $remotedir on $remote. Please check settings in script."
+  exit 1
+fi
 
 for targets in $buildtargets; do
   echo $devices | grep $targets &> /dev/null
@@ -92,14 +146,26 @@ done
 
 total=$(echo $buildtargets | wc -w)
 
-echo "Making AOKP for $total devices:$buildtargets" | tee -a $logdir/$buildlog
-[ ! -z $flag ] && echo "Using flags:$flag" | tee -a $logdir/$buildlog
-echo "Building from directory: $workdir" | tee -a $logdir/$buildlog
-echo "Builds will be saved to: $backupdir" | tee -a $logdir/$buildlog
-echo "Builds will be uploaded to: $remote:$remotedir" | tee -a $logdir/$buildlog
-echo "Build log will be found at: $logdir, filename is $buildlog" | tee -a $logdir/$buildlog
-echo "Time consumption for the process will be logged at: $logdir/$logfile" | tee -a $logdir/$buildlog
-[ ! -z $OUT_DIR_COMMON_BASE ] && echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | tee -a $logdir/$buildlog
+echo "Making AOKP for $total devices:$buildtargets" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+if [ ! -z $flag ]; then
+  echo "Using flags:$flag" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+fi
+echo "Building from directory: $workdir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+echo "Builds will be saved to: $backupdir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+if [ "$noupload" != "true" ]; then
+  echo "Builds will be uploaded to: $remote:$remotedir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+else
+  echo "Upload is disabled."
+fi
+if [ "$nolog" != "true" ]; then
+  echo "Build log will be found at: $logdir, filename is $buildlog" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo "Time consumption for the process will be logged at: $logdir/$logfile" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+else
+  echo "Logging is disabled."
+fi
+if [ ! -z $OUT_DIR_COMMON_BASE ]; then
+  echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+fi
 sleep 5
 
 cd $workdir
@@ -107,10 +173,14 @@ cd $workdir
 
 if [ "$noclean" != "true" ]; then
   make clean
+else
+  echo "'make clean' is skipped."
 fi
 
 start=$(date +%s)
-cleancount=0
+if [ ! -z $cleanevery]; then
+  cleancount=0
+fi
 
 for target in $buildtargets; do
   echo $target | egrep ^- &> /dev/null
@@ -120,30 +190,32 @@ for target in $buildtargets; do
     singlestart=$(date +%s)
     build_date=$(LC_ALL=C date +%Y-%m-%d)
     echo $target | egrep ^-
-    if [ $cleancount -eq $cleanevery ]; then
+    if [ -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
       make clean
     fi
-    brunch $target 2>&1 | tee -a $logdir/$buildlog
+    brunch $target 2>&1 | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      echo "Build error. Please check log." | tee -a $logdir/$buildlog
-      echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | tee -a $logdir/$buildlog
+      echo "Build error. Please check log." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+      echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
       if [ -z $success ]; then
-        echo "Failed the first time. Aborting." | tee -a $logdir/$buildlog
+        echo "Failed the first time. Aborting." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
         exit 1
       else
-        echo "At least one target was being built successfully." | tee -a $logdir/$buildlog
-        echo "Build process will continue." | tee -a $logdir/$buildlog
-        echo "Successful targets: $success" | tee -a $logdir/$buildlog
+        echo "At least one target was being built successfully." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+        echo "Build process will continue." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+        echo "Successful targets: $success" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
         failed="$failed $target"
       fi
     else
       success="$success $target"
     fi
     singlestop=$(date +%s)
-    let cleancount+=1
+    if [ ! -z $cleancount ]; then
+      let cleancount+=1
+    fi
     targetzip=aokp_$target\_kitkat_unofficial_$build_date.zip
     cp $outdir/$target/$targetzip $backupdir/
-    echo "$target: $(timeconv $((singlestop - singlestart)))" | tee -a $logdir/$logfile
+    echo "$target: $(timeconv $((singlestop - singlestart)))" | [ "$nolog" != "true" ] && tee -a $logdir/$logfile
     if [ "$noupload" != "true" ]; then
       rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
       upload_pids="$upload_pids $!"
@@ -156,19 +228,23 @@ if [ "$noupload" != "true" ]; then
     wait $process > /dev/null 2>&1
   done
 
-  ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
+  if [ -z "$remoteowner" ]; then
+    ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt" > /dev/null 2>&1
+  else
+    ssh -4 $remote "[ -f $remotedir/md5.txt ] && rm $remotedir/md5.txt; md5sum $remotedir/*.zip | sed s#$remotedir/#file:\ # > $remotedir/md5.txt; chown $remoteowner: $remotedir/*" > /dev/null 2>&1
+  fi
 fi
 
 stop=$(date +%s)
 total=$((stop - start))
 
 if [ -z $failed ]; then
-  echo -e "Everything built fine.\n" | tee -a $logdir/$buildlog
-  echo -e "These targets were built successfully: $success\n" | tee -a $logdir/$buildlog
+  echo -e "Everything built fine.\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo -e "These targets were built successfully: $success\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
 else
-  echo -e "Some of the targets failed to build.\n" | tee -a $logdir/$buildlog
-  echo -e "These targets were built successfully: $success\n" | tee -a $logdir/$buildlog
-  echo -e "These targets failed: $failed\n" | tee -a $logdir/$buildlog
+  echo -e "Some of the targets failed to build.\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo -e "These targets were built successfully: $success\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo -e "These targets failed: $failed\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
 fi
-echo -e "Total time: $(timeconv $total)\n" | tee -a $logdir/$logfile
+echo -e "Total time: $(timeconv $total)\n" | [ "$nolog" != "true" ] && tee -a $logdir/$logfile
 cat $logdir/$logfile

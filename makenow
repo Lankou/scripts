@@ -178,7 +178,7 @@ else
 fi
 
 start=$(date +%s)
-if [ ! -z $cleanevery]; then
+if [ ! -z $cleanevery ]; then
   cleancount=0
 fi
 
@@ -190,7 +190,7 @@ for target in $buildtargets; do
     singlestart=$(date +%s)
     build_date=$(LC_ALL=C date +%Y-%m-%d)
     echo $target | egrep ^-
-    if [ -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
+    if [ ! -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
       make clean
     fi
     brunch $target 2>&1 | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog

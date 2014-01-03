@@ -146,25 +146,25 @@ done
 
 total=$(echo $buildtargets | wc -w)
 
-echo "Making AOKP for $total devices:$buildtargets" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+echo "Making AOKP for $total devices:$buildtargets" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 if [ ! -z $flag ]; then
-  echo "Using flags:$flag" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo "Using flags:$flag" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 fi
-echo "Building from directory: $workdir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-echo "Builds will be saved to: $backupdir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+echo "Building from directory: $workdir" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+echo "Builds will be saved to: $backupdir" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 if [ "$noupload" != "true" ]; then
-  echo "Builds will be uploaded to: $remote:$remotedir" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo "Builds will be uploaded to: $remote:$remotedir" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 else
   echo "Upload is disabled."
 fi
 if [ "$nolog" != "true" ]; then
-  echo "Build log will be found at: $logdir, filename is $buildlog" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-  echo "Time consumption for the process will be logged at: $logdir/$logfile" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo "Build log will be found at: $logdir, filename is $buildlog" | tee -a $logdir/$buildlog
+  echo "Time consumption for the process will be logged at: $logdir/$logfile" | tee -a $logdir/$buildlog
 else
   echo "Logging is disabled."
 fi
 if [ ! -z $OUT_DIR_COMMON_BASE ]; then
-  echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 fi
 sleep 5
 
@@ -193,17 +193,17 @@ for target in $buildtargets; do
     if [ ! -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
       make clean
     fi
-    brunch $target 2>&1 | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+    brunch $target 2>&1 | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
     if [ ${PIPESTATUS[0]} -ne 0 ]; then
-      echo "Build error. Please check log." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-      echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+      echo "Build error. Please check log." | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+      echo "Time wasted: $(timeconv $(($(date +%s) - singlestart)))" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
       if [ -z $success ]; then
-        echo "Failed the first time. Aborting." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+        echo "Failed the first time. Aborting." | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
         exit 1
       else
-        echo "At least one target was being built successfully." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-        echo "Build process will continue." | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-        echo "Successful targets: $success" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+        echo "At least one target was being built successfully." | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+        echo "Build process will continue." | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+        echo "Successful targets: $success" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
         failed="$failed $target"
       fi
     else
@@ -215,7 +215,7 @@ for target in $buildtargets; do
     fi
     targetzip=aokp_$target\_kitkat_unofficial_$build_date.zip
     cp $outdir/$target/$targetzip $backupdir/
-    echo "$target: $(timeconv $((singlestop - singlestart)))" | [ "$nolog" != "true" ] && tee -a $logdir/$logfile
+    echo "$target: $(timeconv $((singlestop - singlestart)))" | ( [ "$nolog" != "true" ] && tee -a $logdir/$logfile )
     if [ "$noupload" != "true" ]; then
       rsync -4avzhhP --stats $backupdir/$targetzip $remote:$remotedir/ &
       upload_pids="$upload_pids $!"
@@ -239,12 +239,15 @@ stop=$(date +%s)
 total=$((stop - start))
 
 if [ -z $failed ]; then
-  echo -e "Everything built fine.\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-  echo -e "These targets were built successfully: $success\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo -e "Everything built fine.\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+  echo -e "These targets were built successfully: $success\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 else
-  echo -e "Some of the targets failed to build.\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-  echo -e "These targets were built successfully: $success\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
-  echo -e "These targets failed: $failed\n" | [ "$nolog" != "true" ] && tee -a $logdir/$buildlog
+  echo -e "Some of the targets failed to build.\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+  echo -e "These targets were built successfully: $success\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
+  echo -e "These targets failed: $failed\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
 fi
-echo -e "Total time: $(timeconv $total)\n" | [ "$nolog" != "true" ] && tee -a $logdir/$logfile
-cat $logdir/$logfile
+echo -e "Total time: $(timeconv $total)\n" | ( [ "$nolog" != "true" ] && tee -a $logdir/$logfile )
+
+if [ "$nolog" != "true" ]; then
+  cat $logdir/$logfile
+fi

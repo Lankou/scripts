@@ -25,9 +25,16 @@ trappy() {
     HUP)
       # This part should need some work.
       echo "SIGHUP received, restarting." | tee -a $LOGFILE
-      [ -f $PIDFILE ] && rm $PIDFILE
-      $0
-      kill -9 $$
+      if [ -f $PIDFILE ] && [ $(cat $PIDFILE) -eq $$ ]; then
+        rm $PIDFILE
+      elif [ -f $PIDFILE ] && [ $(cat $PIDFILE) -ne $$ ]; then
+        for pid in $(ps aux | grep $(basename $0) | grep -v grep | awk {'print $2'}); do
+          kill -9 $pid
+        done
+        rm $PIDFILE
+      fi
+      $0 &
+      exit 0
       ;;
 esac
 }

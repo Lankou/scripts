@@ -9,7 +9,7 @@ PASS=
 DOMAIN=
 SUBDOM=
 INTERVAL="120"
-PYTHONBIN=/usr/bin/python
+PYTHONBIN=$(which python)
 
 trappy() {
   case $1 in

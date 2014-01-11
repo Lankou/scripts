@@ -9,6 +9,7 @@ PASS=
 DOMAIN=
 SUBDOM=
 INTERVAL="120"
+PYTHONBIN=$(which python)
 
 trappy() {
   case $1 in
@@ -23,11 +24,17 @@ trappy() {
       exit 15
       ;;
     HUP)
-      # This part should need some work.
       echo "SIGHUP received, restarting." | tee -a $LOGFILE
-      [ -f $PIDFILE ] && rm $PIDFILE
-      $0
-      kill -9 $$
+      if [ -f $PIDFILE ] && [ $(cat $PIDFILE) -eq $$ ]; then
+        rm $PIDFILE
+      elif [ -f $PIDFILE ] && [ $(cat $PIDFILE) -ne $$ ]; then
+        for pid in $(ps aux | grep $(basename $0) | grep -v grep | awk {'print $2'}); do
+          kill -9 $pid
+        done
+        rm $PIDFILE
+      fi
+      $0 &
+      exit 0
       ;;
 esac
 }
@@ -40,7 +47,7 @@ trap 'trappy HUP' SIGHUP
 logtime() { date +"%Y-%m-%d %H:%M:%S"; }
 actionget() { curl -4 --silent -X GET "$@"; }
 actionpost() { curl -4 --silent -X POST "$@"; }
-jsonpretty() { python -mjson.tool; }
+jsonpretty() { $PYTHONBIN -mjson.tool; }
 getip() { actionget $GETIPURL; }
 getip_post() { tr -d "\n"; }
 getinfo() { actionpost $APIURL/Domain.List -d $QUERY; }
@@ -63,6 +70,8 @@ FORMAT="json"
 RECLINE="默认"
 QUERY="login_email=$LOGIN&login_password=$PASS&format=$FORMAT"
 ACCINFO=$(getinfo)
+
+echo "DNSPod DDNS auto-update script started: PID $$" | tee -a $LOGFILE
 
 SUCCESS=false
 i=0

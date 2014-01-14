@@ -192,6 +192,7 @@ for target in $buildtargets; do
     echo $target | egrep ^-
     if [ ! -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
       make clean
+      cleancount=0
     fi
     brunch $target 2>&1 | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog )
     if [ ${PIPESTATUS[0]} -ne 0 ]; then

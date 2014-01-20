@@ -4,8 +4,13 @@
 #############
 timeconv()
 {
-  x=$1
-  date -d "1970-01-01 UTC+8 +$x seconds" +"%Hh %Mm %Ss"
+  tz="$(echo $(date +%H)-$(date -u +%H) | bc)"
+  echo $tz | grep "-" &> /dev/null
+  if [ $? -ne 0 ]; then
+    date -d "1970-01-01 UTC+$tz +$1 seconds" +"%Hh %Mm %Ss"
+  else
+    date -d "1970-01-01 UTC$tz +$1 seconds" +"%Hh %Mm %Ss"
+  fi
 }
 
 #################
@@ -190,7 +195,7 @@ for target in $buildtargets; do
     singlestart=$(date +%s)
     build_date=$(LC_ALL=C date +%Y-%m-%d)
     echo $target | egrep ^-
-    if [ ! -z $cleancount ] && [ $cleancount -eq $cleanevery ]; then
+    if [ ! -z $cleancount ] && [ $cleancount -ne 0 ] && [ $cleancount -eq $cleanevery ]; then
       make clean
       cleancount=0
     fi

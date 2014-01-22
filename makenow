@@ -61,6 +61,9 @@ if [ -z $backupdir ]; then
   echo "Variable 'backupdir' is not defined. We need this to store finished zips."
   echo "Script aborted."
   exit 1
+elif [ ! -d $backupdir ]; then
+  echo "Variable 'backupdir' is defined but the directory doesn't exist. Creating it..."
+  mkdir -p $backupdir
 fi
 
 for each in $@; do
@@ -75,6 +78,10 @@ for each in $@; do
       ;;
     -nolog)
       nolog=true
+      flag="$flag $each"
+      ;;
+    -clobber)
+      clobber=true
       flag="$flag $each"
       ;;
     *)
@@ -176,8 +183,11 @@ sleep 5
 cd $workdir
 . $workdir/build/envsetup.sh
 
-if [ "$noclean" != "true" ]; then
+if [ "$noclean" != "true" ] && [ "$clobber" != "true" ]; then
   make clean
+elif [ "$noclean" != "true" ] && [ "$clobber" = "true" ]; then
+  echo "Parameter 'clobber' is specified. Will do a 'make clobber' instead."
+  make clobber
 else
   echo "'make clean' is skipped."
 fi

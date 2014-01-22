@@ -15,6 +15,8 @@ aokpsrc=$1
 branch=$2
 repos=$3
 url="https://github.com/AOKP/platform_manifest.git"
+customrepo="  <project path="packages/apps/CMFileManager" name="CyanogenMod/android_packages_apps_CMFileManager" remote="cm" revision="cm-11.0" />
+  <project path="packages/apps/LockClock" name="CyanogenMod/android_packages_apps_LockClock" remote="cm" revision="cm-11.0" />"
 
 echo "This script will set up AOKP sources."
 # Install required packages for building
@@ -44,6 +46,15 @@ cd $aokpsrc
 
 # Initialize repository and sync
 repo init -u $url -b $branch -g all,-notdefault,$repos
+mkdir -p $aokpsrc/.repo/local_manifests
+
+if [ ! -z $customrepo ]; then
+echo -e "<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+$customrepo
+</manifest>" > $aokpsrc/.repo/local_manifests/custom.xml
+fi
+
 repo sync -j$(grep processor /proc/cpuinfo | wc -l)
 
 echo "AOKP local repo set up complete."

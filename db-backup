@@ -87,7 +87,7 @@ if [ $(echo "$FREESPACE <= 10" | bc) -ne 0 ]; then
 fi
 
 # Get a list of available databases belongs to defined user.
-OWNDB=$(psql -U $PGUSER -c "SELECT datname FROM pg_database JOIN pg_authid ON pg_database.datdba = pg_authid.oid WHERE rolname = '$PGUSER'" | tail -n +3 | head -n -2)
+OWNDB=$(psql -U $PGUSER -c "SELECT datname FROM pg_database JOIN pg_roles ON pg_database.datdba = pg_roles.oid WHERE rolname = '$PGUSER'" | tail -n +3 | head -n -2)
 echo -e "$YELLOW$(logtime):$GREEN Databases owned by $CYAN$PGUSER$GREEN:\n$PINK$OWNDB$GREEN\nThey're going to be backed up.\n$ORIGCOLOR" 2>&1 | tee -a $LOGFILE
 
 # Start backup!

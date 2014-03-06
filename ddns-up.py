@@ -21,6 +21,7 @@ dyndomain = "ddns.example.com"                      # change to your dynamic dom
 # Initialize - you don't need to change this.
 # Only support one level of subdomain at this moment (xxxxx.example.com)
 # TODO: figure out a way to parse domain names correctly other than using extra
+# TODO: add support for updating multiple domains
 # libs like tldextract
 domain = dyndomain.split('.', 1)[1]
 subdomain = dyndomain.split('.', 1)[0]

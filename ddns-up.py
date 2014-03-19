@@ -16,12 +16,14 @@ settings = dict(
     record_line = "默认",                           # DO NOT CHANGE!!
 )
 dyndomain = "ddns.example.com"                      # change to your dynamic domain
+update_interval = 6
 
 ###################################################################################
 # Initialize - you don't need to change this.
 # Only support one level of subdomain at this moment (xxxxx.example.com)
 # TODO: figure out a way to parse domain names correctly other than using extra
 # TODO: add support for updating multiple domains
+# TODO: add logging
 # libs like tldextract
 domain = dyndomain.split('.', 1)[1]
 subdomain = dyndomain.split('.', 1)[0]
@@ -136,12 +138,12 @@ if __name__ == '__main__':
             myip = getip()
             recip = getinfo('recip')
             if recip != myip:
-                print '%s: IP address changed. Updating.' % ts()
-                print ('%s: Record: %s, updating to: %s' % (ts(), recip, myip))
+                print '%s: IP address changed. (Record: %s; Current: %s) -> Updating.' % (ts(), recip, myip)
+                print '%s: Record: %s, updating to: %s' % (ts(), recip, myip)
                 updateddns()
             else:
-                print '%s: IP address not changed. Sleep for 60 seconds.' % ts()
+                print '%s: IP address not changed (%s). Sleep for %d seconds.' % (ts(), recip, update_interval)
         except Exception, e:
             print '%s: %s' % (ts(), e)
             pass
-        time.sleep(60)
+        time.sleep(update_interval)

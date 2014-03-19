@@ -43,9 +43,6 @@ def ts():
     return timestamp
 
 if platform.system() == 'Linux':
-    if not pidfile or not os.path.isfile(pidfile):
-        logger.error('%s: Invalid PID file path: %s. Please check your settings.', ts(), pidfile)
-        sys.exit(1)
     if os.path.isfile(pidfile):
         with open (pidfile, 'r') as pf:
             oldpid = pf.read().strip()

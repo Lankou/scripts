@@ -16,7 +16,7 @@ settings = dict(
     record_line = "默认",                           # DO NOT CHANGE!!
 )
 dyndomain = "ddns.example.com"                      # change to your dynamic domain
-update_interval = 6
+update_interval = 60
 
 ###################################################################################
 # Initialize - you don't need to change this.

@@ -72,8 +72,9 @@ def getinfo(infotype):
                     settings.update(dict(domain_id=domid))
                     print '%s: ID for domain %s fetched, ID %s' % (ts(), domain, domid)
 
-                if domain not in domlist:
-                    raise ValueError('%s: Domain %s cannot be found under account %s!' % (ts(), domain, settings.get('login_email')))
+            if 'domain_id' not in settings:
+                raise ValueError('%s: Domain %s cannot be found under account %s!' % (ts(), domain, settings.get('login_email')))
+
         except KeyError, e:
             raise KeyError('%s: %s field not found in server response. Please check your login information.' % (ts(), e))
 
@@ -91,8 +92,9 @@ def getinfo(infotype):
                     settings.update(dict(record_id=recid))
                     print '%s: ID for subdomain %s fetched, ID %s' % (ts(), subdomain, recid)
 
-                if subdomain not in reclist:
-                    raise ValueError('%s: Subdomain %s cannot be found under %s!' % (ts(), subdomain, domain))
+            if 'record_id' not in settings:
+                raise ValueError('%s: Subdomain %s cannot be found under %s!' % (ts(), subdomain, domain))
+
         except KeyError, e:
             raise KeyError('%s: %s field not found in server response. Please check your domain.' % (ts(), e))
 

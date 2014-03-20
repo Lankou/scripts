@@ -34,7 +34,7 @@ headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/
 logger = logging.getLogger('DNSPod DDNS Updater')
 if logfile is None:
     logging.basicConfig(level=logging.INFO)
-    logger.info('Logging is disabled. Sending output to stdout.')
+    logger.info('NOTICE: Logging is disabled. Sending output to stdout.')
 else:
     logging.basicConfig(filename=logfile, level=logging.INFO)
 
@@ -60,7 +60,7 @@ if platform.system() == 'Linux':
     else:
         try:
             logger.info('%s: PID file not found. Assuming this is the only instance running.', ts())
-            logger.info('Creating PID file with pid %s.', os.getpid())
+            logger.info('%s: Creating PID file with pid %s.', ts(), os.getpid())
             with open(pidfile, 'w') as pf:
                 pf.write(str(os.getpid()))
         except:

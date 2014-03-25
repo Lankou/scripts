@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #-*- coding: utf-8 -*-
 import httplib, urllib
+import socket
 import time, datetime
 import json
 import os, sys, platform
@@ -13,8 +14,8 @@ You only need to change settings in this section.
 settings = dict(
     login_email = "webmaster@example.com",        # change to your email
     login_password = "swordfish",                 # change to your password
-    format = "json",                                # DO NOT CHANGE!!
     record_line = "默认",                           # DO NOT CHANGE!!
+    format = "json",                                # DO NOT CHANGE!!
 )
 dyndomain = "ddns.example.com"                      # change to your dynamic domain
 update_interval = 60                                # self-explanatory option
@@ -68,85 +69,114 @@ if platform.system() == 'Linux':
             raise
 
 def getinfo(infotype):
-    conn = httplib.HTTPSConnection('dnsapi.cn')
+    try:
+        conn = httplib.HTTPSConnection('dnsapi.cn')
 
-    if infotype == 'domid':
-        try:
-            conn.request("POST", "/Domain.List", urllib.urlencode(settings), headers)
-            doms = json.loads(conn.getresponse().read())['domains']
+        if infotype == 'domid':
+            try:
+                conn.request("POST", "/Domain.List", urllib.urlencode(settings), headers)
+                doms = json.loads(conn.getresponse().read())['domains']
 
-            for names in doms:
-                domlist = []
-                domlist.append(names['name'])
+                for names in doms:
+                    domlist = []
+                    domlist.append(names['name'])
 
-                if names['name'] == domain:
-                    domid = names['id']
-                    settings.update(dict(domain_id=domid))
-                    logger.info('%s: ID for domain %s fetched, ID %s', ts(), domain, domid)
+                    if names['name'] == domain:
+                        domid = names['id']
+                        settings.update(dict(domain_id=domid))
+                        logger.info('%s: ID for domain %s fetched, ID %s', ts(), domain, domid)
 
-            if 'domain_id' not in settings:
-                logger.error('%s: Domain %s cannot be found under account %s!', ts(), domain, settings.get('login_email'))
-                sys.exit(1)
+                if 'domain_id' not in settings:
+                    logger.error('%s: Domain %s cannot be found under account %s!', ts(), domain, settings.get('login_email'))
+                    sys.exit(1)
 
-        except KeyError, e:
-            logger.error('%s: %s field not found in server response. Please check your login information.', ts(), e, exc_info=True)
-            raise
+            except KeyError, e:
+                logger.error('%s: %s field not found in server response. Please check your login information.', ts(), e, exc_info=True)
+                raise
 
-    elif infotype == 'recid':
-        try:
-            conn.request("POST", "/Record.List", urllib.urlencode(settings), headers)
-            recs = json.loads(conn.getresponse().read())['records']
+            except socket.gaierror:
+                logger.error('%s: Unable to connect to server. Retrying in %d seconds.', ts(), update_interval, exc_info=True)
+                time.sleep(update_interval)
+                getinfo('domid')
 
-            for records in recs:
-                reclist = []
-                reclist.append(records['name'])
+        elif infotype == 'recid':
+            try:
+                conn.request("POST", "/Record.List", urllib.urlencode(settings), headers)
+                recs = json.loads(conn.getresponse().read())['records']
 
-                if records['name'] == subdomain:
-                    recid = records['id']
-                    settings.update(dict(record_id=recid))
-                    logger.info('%s: ID for subdomain %s fetched, ID %s', ts(), subdomain, recid)
+                for records in recs:
+                    reclist = []
+                    reclist.append(records['name'])
 
-            if 'record_id' not in settings:
-                logger.error('%s: Subdomain %s cannot be found under %s!', ts(), subdomain, domain)
-                sys.exit(1)
+                    if records['name'] == subdomain:
+                        recid = records['id']
+                        settings.update(dict(record_id=recid))
+                        logger.info('%s: ID for subdomain %s fetched, ID %s', ts(), subdomain, recid)
 
-        except KeyError, e:
-            logger.error('%s: %s field not found in server response. Please check your domain.', ts(), e, exc_info=True)
-            raise
+                if 'record_id' not in settings:
+                    logger.error('%s: Subdomain %s cannot be found under %s!', ts(), subdomain, domain)
+                    sys.exit(1)
 
-    elif infotype == 'recip':
-        conn.request("POST", "/Record.Info", urllib.urlencode(settings), headers)
-        recip = json.loads(conn.getresponse().read())['record']['value']
-        if not recip:
-            logger.error('%s: Failed to obtain record IP for %s.', ts(), dyndomain)
-            sys.exit(1)
-        else:
-            return recip
+            except KeyError, e:
+                logger.error('%s: %s field not found in server response. Please check your domain.', ts(), e, exc_info=True)
+                raise
 
-    conn.close()
+            except socket.gaierror:
+                logger.error('%s: Unable to connect to server. Retrying in %d seconds.', ts(), update_interval, exc_info=True)
+                time.sleep(update_interval)
+                getinfo('recid')
+
+        elif infotype == 'recip':
+            try:
+                conn.request("POST", "/Record.Info", urllib.urlencode(settings), headers)
+                recip = json.loads(conn.getresponse().read())['record']['value']
+                if not recip:
+                    logger.error('%s: Failed to obtain record IP for %s.', ts(), dyndomain)
+                    sys.exit(1)
+                else:
+                    return recip
+
+            except socket.gaierror:
+                logger.error('%s: Unable to connect to server. Retrying in %d seconds.', ts(), update_interval, exc_info=True)
+                time.sleep(update_interval)
+                getinfo('recip')
+
+    finally:
+        conn.close()
 
 def updateddns():
     try:
         conn = httplib.HTTPSConnection('dnsapi.cn')
         conn.request("POST", "/Record.Ddns", urllib.urlencode(settings), headers)
         if not conn.getresponse().read():
-            logger.error('%s: Failed to update DDNS record. Please check your network connectivity.', ts())
-            sys.exit(1)
+            logger.error('%s: Failed to update DDNS record. Will retry in next attempt.', ts())
         else:
             logger.info('%s: DDNS record updated.', ts())
+
+    except socket.gaierror:
+        logger.error('%s: Unable to connect to server. Will retry in next attempt.', ts(), exc_info=True)
+        pass
+
     finally:
         conn.close()
 
 def getip():
-    conn = httplib.HTTPConnection('icanhazip.com')
-    conn.request("GET", "/")
-    myip = conn.getresponse().read().strip()
-    conn.close()
-    if not myip:
-        logger.error('%s: Unable to fetch your current IP. Please check your network connectivity.', ts())
-        sys.exit(1)
-    else:
-        return myip
+    try:
+        conn = httplib.HTTPConnection('icanhazip.com')
+        conn.request("GET", "/")
+        myip = conn.getresponse().read().strip()
+
+        if not myip:
+            logger.error('%s: Unable to fetch your current IP. Will retry in next attempt.', ts())
+        else:
+            return myip
+
+    except socket.gaierror:
+        logger.error('%s: Unable to connect to server. Will retry in next attempt.', ts(), exc_info=True)
+        pass
+
+    finally:
+        conn.close()
 
 if __name__ == '__main__':
     getinfo('domid')

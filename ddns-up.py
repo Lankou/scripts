@@ -22,15 +22,12 @@ update_interval = 60                                # self-explanatory option
 pidfile = '/tmp/ddns-up.pid'                        # pid file
 logfile = '/tmp/ddns-up.log'                        # log file (set to None to disable logging)
 recordtype = 'v4'                                   # record type: IPv4, IPv6 = v4, v6
-                                                    # only support IPv4 if you have dual stack,
-                                                    # haven't found a way to force IPv6 yet.
 
-#####################################################################################################
+###########################################################################################################
 # Initialize - you don't need to change this.
 # Only support one level of subdomain at this moment (xxxxx.example.com)
-# TODO: figure out a way to parse domain names correctly other than using extra libs like tldextract
+# TODO: figure out a way to parse domain names in the right way other than using extra libs like tldextract
 # TODO: add support for updating multiple domains
-# TODO: add some kind of log path validation (too lazy)
 domain = dyndomain.split('.', 1)[1]
 subdomain = dyndomain.split('.', 1)[0]
 settings.update(dict(sub_domain=subdomain))
@@ -126,7 +123,7 @@ def getinfo(infotype):
                         sys.exit(1)
 
                 if 'record_id' not in settings:
-                    logger.error('%s: Subdomain %s cannot be found under %s!', ts(), subdomain, domain)
+                    logger.error('%s: Subdomain %s with record type %s cannot be found under %s!', ts(), subdomain, recordtype, domain)
                     sys.exit(1)
 
             except KeyError, e:
@@ -158,6 +155,8 @@ def getinfo(infotype):
 
 def updateddns():
     try:
+        cur_ip = getip(recordtype)
+        settings.update(dict(value=cur_ip))
         conn = httplib.HTTPSConnection('dnsapi.cn')
         conn.request("POST", "/Record.Ddns", urllib.urlencode(settings), headers)
         if not conn.getresponse().read():
@@ -172,11 +171,20 @@ def updateddns():
     finally:
         conn.close()
 
-def getip():
+def getip(rt):
     try:
-        conn = httplib.HTTPConnection('icanhazip.com')
-        conn.request("GET", "/")
-        myip = conn.getresponse().read().strip()
+        if rt == 'v4':
+            conn = httplib.HTTPConnection('icanhazip.com')
+            conn.request("GET", "/")
+            myip = conn.getresponse().read().strip()
+        elif rt == 'v6':
+            conn = httplib.HTTPConnection('ipv6.icanhazip.com')
+            conn.request("GET", "/")
+            myip = conn.getresponse().read().strip()
+        else:
+            logger.error('%s: Wrong record type %s. Please check your settings.', ts(), rt)
+            sys.exit(1)
+
 
         if not myip:
             logger.error('%s: Unable to fetch your current IP. Will retry in next attempt.', ts())
@@ -195,7 +203,7 @@ if __name__ == '__main__':
     getinfo('recid')
     while True:
         try:
-            myip = getip()
+            myip = getip(recordtype)
             recip = getinfo('recip')
             if recip != myip:
                 logger.info('%s: IP address changed. (Record: %s; Current: %s) -> Updating.', ts(), recip, myip)

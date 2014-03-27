@@ -21,6 +21,9 @@ dyndomain = "ddns.example.com"                      # change to your dynamic dom
 update_interval = 60                                # self-explanatory option
 pidfile = '/tmp/ddns-up.pid'                        # pid file
 logfile = '/tmp/ddns-up.log'                        # log file (set to None to disable logging)
+recordtype = 'v4'                                   # record type: IPv4, IPv6 = v4, v6
+                                                    # only support IPv4 if you have dual stack,
+                                                    # haven't found a way to force IPv6 yet.
 
 #####################################################################################################
 # Initialize - you don't need to change this.
@@ -108,10 +111,19 @@ def getinfo(infotype):
                     reclist = []
                     reclist.append(records['name'])
 
-                    if records['name'] == subdomain:
-                        recid = records['id']
-                        settings.update(dict(record_id=recid))
-                        logger.info('%s: ID for subdomain %s fetched, ID %s', ts(), subdomain, recid)
+                    if recordtype == 'v4':
+                        if records['name'] == subdomain and records['type'] == 'A':
+                            recid = records['id']
+                            settings.update(dict(record_id=recid))
+                            logger.info('%s: ID for subdomain %s fetched, ID %s', ts(), subdomain, recid)
+                    elif recordtype == 'v6':
+                        if records['name'] == subdomain and records['type'] == 'AAAA':
+                            recid = records['id']
+                            settings.update(dict(record_id=recid))
+                            logger.info('%s: ID for subdomain %s fetched, ID %s', ts(), subdomain, recid)
+                    else:
+                        logger.error('%s: Wrong record type %s. Please check your settings.', ts(), recordtype)
+                        sys.exit(1)
 
                 if 'record_id' not in settings:
                     logger.error('%s: Subdomain %s cannot be found under %s!', ts(), subdomain, domain)

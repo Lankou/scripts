@@ -185,7 +185,7 @@ fi
 if [ ! -z $OUT_DIR_COMMON_BASE ]; then
   echo "Build output directory has been redirected to: $OUT_DIR_COMMON_BASE" | ( [ "$nolog" != "true" ] && tee -a $logdir/$buildlog || tee )
 fi
-echo "On-screen notification is $notification\."
+echo "On-screen notification is $notification."
 sleep 5
 
 cd $workdir

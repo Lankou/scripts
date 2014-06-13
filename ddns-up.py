@@ -47,7 +47,7 @@ if platform.system() == 'Linux':
     if os.path.isfile(pidfile):
         with open (pidfile, 'r') as pf:
             oldpid = pf.read().strip()
-            if os.path.exists('/proc/' + oldpid) and oldpid:
+            if os.path.exists('/proc/' + oldpid) and oldpid and os.path.basename(__file__) in oldpid:
                 logger.error('%s: Another process %s is still running. Terminating.', ts(), oldpid)
                 sys.exit(1)
             else:

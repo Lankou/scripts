@@ -174,7 +174,7 @@ def updateddns():
 def getip(rt):
     try:
         if rt == 'v4':
-            conn = httplib.HTTPConnection('icanhazip.com')
+            conn = httplib.HTTPConnection('ipv4.icanhazip.com')
             conn.request("GET", "/")
             myip = conn.getresponse().read().strip()
         elif rt == 'v6':

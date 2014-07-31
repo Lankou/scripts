@@ -21,6 +21,7 @@ dyndomain = "ddns.example.com"                      # change to your dynamic dom
 update_interval = 60                                # self-explanatory option
 pidfile = '/tmp/ddns-up.pid'                        # pid file
 logfile = '/tmp/ddns-up.log'                        # log file (set to None to disable logging)
+                                                    # you can comment this if you're logging with journald
 recordtype = 'v4'                                   # record type: IPv4, IPv6 = v4, v6
 
 ###########################################################################################################
@@ -33,6 +34,23 @@ subdomain = dyndomain.split('.', 1)[0]
 settings.update(dict(sub_domain=subdomain))
 headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/json"}
 logger = logging.getLogger('DNSPod DDNS Updater')
+
+###########################################
+# Logging to systemd
+# Uncomment below section if you need this
+"""
+from systemd import journal
+journal.JournalHandler(SYSLOG_IDENTIFIER='DNSPod DDNS Updater')
+logger.propagate = False
+logger.addHandler(journal.JournalHandler())
+logger.root.addHandler(journal.JournalHandler())
+logger.setLevel(logging.DEBUG)
+logger.info('Using systemd.journal. Logs will be sent to journald.)
+"""
+
+##########################################################################
+# If you're going to use systemd's logging (journald), please comment out
+# line 57 - 61
 if logfile is None:
     logging.basicConfig(level=logging.INFO)
     logger.info('NOTICE: Logging is disabled. Sending output to stdout.')
